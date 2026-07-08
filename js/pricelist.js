@@ -41,7 +41,7 @@ const PriceList = (function () {
     body.innerHTML = "";
     const rows = list();
     if (!rows.length) {
-      body.innerHTML = `<tr><td colspan="9" class="empty">Không có mặt hàng phù hợp.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="10" class="empty">Không có mặt hàng phù hợp.</td></tr>`;
       return;
     }
     rows.forEach((it) => {
@@ -55,12 +55,14 @@ const PriceList = (function () {
         <td class="col-num"><input class="cell-in num" type="number" min="0" step="100" value="${it.price}" data-id="${it.id}"/></td>
         <td>${esc(it.leadTime)}</td>
         <td class="col-num">${it.minStock || 0}</td>
+        <td class="cfg-cell">${cfgSummary(it)} <button class="btn-icon" data-cfg="${it.id}" title="Cài đặt định mức BOM">⚙</button></td>
         <td class="col-act">
           <button class="btn-icon" data-edit="${it.id}" title="Sửa">✎</button>
           <button class="btn-del" data-del="${it.id}" title="Xóa">✕</button>
         </td>`;
       body.appendChild(tr);
     });
+    body.querySelectorAll("[data-cfg]").forEach((b) => (b.onclick = () => configModal(b.getAttribute("data-cfg"))));
     body.querySelectorAll("input[data-id]").forEach((el) => {
       el.oninput = () => { const it = Store.findItem(el.getAttribute("data-id")); if (it) { it.price = parseFloat(el.value) || 0; Store.save(); } };
       el.onchange = () => {
@@ -87,6 +89,46 @@ const PriceList = (function () {
       return `<tr><td>${when}</td><td>${esc(h.name)}</td><td class="col-num">${fmt(h.old)} đ</td><td class="col-num">${fmt(h.new)} đ</td>
         <td class="col-num" style="color:${up ? "#b91c1c" : "#15803d"}">${up ? "▲" : "▼"} ${fmt(Math.abs(diff))} đ (${pct}%)</td></tr>`;
     }).join("");
+  }
+
+  /* ---------- Cài đặt định mức BOM (nút ⚙) ---------- */
+  function cfgSummary(it) {
+    if (it.category === "CELL") return `<small>${it.v || 0}V · ${it.ah || 0}Ah</small>`;
+    if (it.category === "BMS" || it.category === "CASE") return `<small class="muted">chọn ở Dự toán</small>`;
+    const inBom = (it.qtyFixed || 0) || (it.qtyPerCell || 0) || (it.qtyPerS || 0);
+    return inBom ? `<span class="tag tag-green">trong BOM</span>` : `<small class="muted">chưa dùng</small>`;
+  }
+
+  function configModal(id) {
+    const it = Store.findItem(id);
+    if (!it) return;
+    let bodyHtml, hideOk = false;
+    if (it.category === "CELL") {
+      bodyHtml = `<p class="hint">Thông số cell để tính điện áp & dung lượng pack trong dự toán.</p>
+        <div class="grid-3">
+          <label class="field"><span>Điện áp (V)</span><input data-name="v" type="number" step="0.1" value="${it.v || 0}"/></label>
+          <label class="field"><span>Dung lượng (Ah)</span><input data-name="ah" type="number" step="0.1" value="${it.ah || 0}"/></label>
+          <label class="field"><span>Hóa học</span><input data-name="chem" value="${esc(it.chem)}"/></label>
+        </div>`;
+    } else if (it.category === "BMS" || it.category === "CASE") {
+      bodyHtml = `<p class="hint"><b>${esc(categoryLabel(it.category))}</b> được <b>chọn trực tiếp trong tab Dự toán</b> (số lượng mặc định 1/pack), không cần cài định mức tự động ở đây.</p>`;
+      hideOk = true;
+    } else {
+      bodyHtml = `<p class="hint">Định mức để <b>tự tính số lượng trong BOM</b>:<br><b>SL = Cố định + (Theo cell × tổng cell) + (Theo S × số nối tiếp)</b>. Đặt 0 hết nếu không đưa vào BOM.</p>
+        <div class="grid-3">
+          <label class="field"><span>Cố định / pack</span><input data-name="qtyFixed" type="number" step="any" value="${it.qtyFixed || 0}"/></label>
+          <label class="field"><span>Theo cell</span><input data-name="qtyPerCell" type="number" step="any" value="${it.qtyPerCell || 0}"/></label>
+          <label class="field"><span>Theo S</span><input data-name="qtyPerS" type="number" step="any" value="${it.qtyPerS || 0}"/></label>
+        </div>`;
+    }
+    modal({
+      title: `Cài đặt định mức — ${it.code}`, bodyHtml, hideOk,
+      onSubmit: (v) => {
+        if (it.category === "CELL") { it.v = +v.v || 0; it.ah = +v.ah || 0; it.chem = (v.chem || "").trim(); }
+        else if (it.category !== "BMS" && it.category !== "CASE") { it.qtyFixed = +v.qtyFixed || 0; it.qtyPerCell = +v.qtyPerCell || 0; it.qtyPerS = +v.qtyPerS || 0; }
+        Store.save(); render(); syncEstimator(); toast("Đã lưu cài đặt");
+      },
+    });
   }
 
   /* ---------- CRUD ---------- */

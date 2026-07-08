@@ -20,6 +20,7 @@ const Store = (function () {
     },
     priceHistory: [], // {ts,kind,name,field,old,new}
     items: [],        // bảng giá đầu vào (xem data.js để biết schema)
+    templates: [],    // mẫu pack chuẩn: {id,name,cellCode,bmsCode,caseCode,s,p}
     customers: [],    // {id,name,company,phone,email,address,taxCode,note,createdAt}
     quotes: [],       // {id,code,customerId,date,validDays,items[],discountPct,vatPct,note,status,createdAt}
     counters: {},     // { "2026": 3 }
@@ -60,6 +61,10 @@ const Store = (function () {
       if (!it.category) it.category = categoryOf(it.code); // giữ phân loại đã sửa tay
       if (!it.unit) it.unit = it.category === "CELL" ? "cell" : "cái";
     });
+
+    // Seed / chuẩn hóa mẫu pack chuẩn
+    if (!state.templates || !state.templates.length) state.templates = TEMPLATES.map((t) => ({ ...t }));
+    state.templates.forEach((t) => { if (!t.id) t.id = uid("tpl-"); });
 
     delete state.cells;
     delete state.materials;

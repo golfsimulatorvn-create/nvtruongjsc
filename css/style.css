@@ -382,3 +382,17 @@ table.q-items { width: 100%; }
   .q-group td { background: #39b54a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .q-img-add, .q-img-x { display: none !important; }
 }
+
+/* ---- Quản lý mẫu pack ---- */
+.mini-link { border: none; background: none; color: var(--primary); cursor: pointer; font-size: 12px; font-weight: 700; padding: 0; text-decoration: underline; }
+.tpl-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; }
+.tpl-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; }
+.tpl-row small { color: var(--muted); }
+.tpl-acts { display: flex; gap: 6px; flex-shrink: 0; }
+.tpl-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+/* ---- Cột cài đặt định mức BOM ---- */
+.cfg-cell { white-space: nowrap; }
+.cfg-cell small.muted { color: var(--muted); }
+.cfg-cell .btn-icon { background: #f1f5f9; color: var(--primary-dark); }
+.cfg-cell .btn-icon:hover { background: #e2e8f0; }

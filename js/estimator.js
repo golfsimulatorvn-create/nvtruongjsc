@@ -16,7 +16,10 @@ const Estimator = (function () {
 
   function initSelects() {
     const tpl = $("template");
-    if (!tpl.options.length) TEMPLATES.forEach((t) => tpl.add(new Option(t.name, t.id)));
+    const cur = tpl.value;
+    tpl.innerHTML = "";
+    Store.state.templates.forEach((t) => tpl.add(new Option(t.name, t.id)));
+    if (cur && [...tpl.options].some((o) => o.value === cur)) tpl.value = cur;
     fillSelect($("cell"), Store.cellItems(), $("cell").value);
     fillSelect($("bms"), Store.itemsByCat("BMS"), $("bms").value);
     fillSelect($("case"), Store.itemsByCat("CASE"), $("case").value);
@@ -65,8 +68,9 @@ const Estimator = (function () {
   }
 
   function applyTemplate(id) {
-    const t = TEMPLATES.find((x) => x.id === id) || TEMPLATES[0];
-    $("template").value = id;
+    const t = Store.state.templates.find((x) => x.id === id) || Store.state.templates[0];
+    if (!t) return;
+    $("template").value = t.id;
     const cell = byCode(t.cellCode), bms = byCode(t.bmsCode), cs = byCode(t.caseCode);
     if (cell) $("cell").value = cell.id;
     if (bms) $("bms").value = bms.id;
@@ -259,6 +263,92 @@ const Estimator = (function () {
     render();
   }
 
+  /* ================= QUẢN LÝ MẪU PACK ================= */
+  function optsFor(items, code) {
+    return items.map((it) => `<option value="${it.code}" ${it.code === code ? "selected" : ""}>${esc(it.code)} — ${esc(it.name)}</option>`).join("");
+  }
+
+  function openTemplateManager() {
+    const rows = Store.state.templates.map((t) => `
+      <div class="tpl-row">
+        <div><b>${esc(t.name)}</b><br><small>${t.s}S${t.p}P · ${esc(t.cellCode || "")}${t.bmsCode ? " · " + esc(t.bmsCode) : ""}${t.caseCode ? " · " + esc(t.caseCode) : ""}</small></div>
+        <div class="tpl-acts">
+          <button class="btn-icon" data-tedit="${t.id}" title="Sửa">✎</button>
+          <button class="btn-del" data-tdel="${t.id}" title="Xóa">✕</button>
+        </div>
+      </div>`).join("");
+    UI.modal({
+      title: "Quản lý mẫu pack chuẩn", okText: "Đóng",
+      bodyHtml: `<div class="tpl-list">${rows || '<p class="hint">Chưa có mẫu nào.</p>'}</div>
+        <div class="tpl-tools">
+          <button class="btn btn-sm" id="tpl-add" type="button">＋ Thêm mẫu mới</button>
+          <button class="btn btn-sm btn-ghost" id="tpl-from-current" type="button">Lưu cấu hình hiện tại thành mẫu</button>
+        </div>`,
+      onSubmit: () => true,
+    });
+    document.querySelectorAll("[data-tedit]").forEach((b) => (b.onclick = () => templateForm(b.getAttribute("data-tedit"))));
+    document.querySelectorAll("[data-tdel]").forEach((b) => (b.onclick = () => {
+      if (Store.state.templates.length <= 1) return UI.toast("Cần giữ ít nhất 1 mẫu", "err");
+      if (UI.confirmBox("Xóa mẫu này?")) {
+        Store.state.templates = Store.state.templates.filter((x) => x.id !== b.getAttribute("data-tdel"));
+        Store.save(); initSelects(); openTemplateManager();
+      }
+    }));
+    $("tpl-add").onclick = () => templateForm(null);
+    $("tpl-from-current").onclick = saveCurrentAsTemplate;
+  }
+
+  function templateForm(id) {
+    const t = id ? Store.state.templates.find((x) => x.id === id)
+      : { name: "", cellCode: (Store.cellItems()[0] || {}).code, s: 16, p: 4, bmsCode: "", caseCode: "" };
+    const cellOpts = optsFor(Store.cellItems(), t.cellCode);
+    const none = '<option value="">— không —</option>';
+    const bmsOpts = none + optsFor(Store.itemsByCat("BMS"), t.bmsCode);
+    const caseOpts = none + optsFor(Store.itemsByCat("CASE"), t.caseCode);
+    UI.modal({
+      title: id ? "Sửa mẫu pack" : "Thêm mẫu pack",
+      bodyHtml: `
+        <label class="field"><span>Tên mẫu *</span><input data-name="name" value="${esc(t.name)}" placeholder="VD: Pin xe nâng 48V 102Ah"/></label>
+        <label class="field"><span>Loại cell</span><select data-name="cellCode">${cellOpts}</select></label>
+        <div class="grid-2">
+          <label class="field"><span>Loại BMS</span><select data-name="bmsCode">${bmsOpts}</select></label>
+          <label class="field"><span>Loại Vỏ</span><select data-name="caseCode">${caseOpts}</select></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Số nối tiếp (S)</span><input data-name="s" type="number" min="1" value="${t.s}"/></label>
+          <label class="field"><span>Số song song (P)</span><input data-name="p" type="number" min="1" value="${t.p}"/></label>
+        </div>`,
+      onSubmit: (v) => {
+        if (!v.name.trim()) return UI.toast("Nhập tên mẫu", "err"), false;
+        const rec = { name: v.name.trim(), cellCode: v.cellCode, bmsCode: v.bmsCode, caseCode: v.caseCode,
+          s: Math.max(1, Math.round(+v.s || 1)), p: Math.max(1, Math.round(+v.p || 1)) };
+        if (id) Object.assign(Store.state.templates.find((x) => x.id === id), rec);
+        else Store.state.templates.push({ id: Store.uid("tpl-"), ...rec });
+        Store.save(); initSelects(); UI.toast("Đã lưu mẫu");
+        setTimeout(openTemplateManager, 0);
+      },
+    });
+  }
+
+  function saveCurrentAsTemplate() {
+    const cell = Store.findItem($("cell").value), bms = Store.findItem($("bms").value), cs = Store.findItem($("case").value);
+    const s = num($("series")), p = num($("parallel"));
+    const suggest = [$("product-code").value.trim(), cell ? cell.name : ""].filter(Boolean).join(" · ");
+    UI.modal({
+      title: "Lưu cấu hình hiện tại thành mẫu",
+      bodyHtml: `<label class="field"><span>Tên mẫu *</span><input data-name="name" value="${esc(suggest)}"/></label>
+        <p class="hint">Lưu: ${Math.max(1, Math.round(s))}S${Math.max(1, Math.round(p))}P · ${esc(cell ? cell.code : "")}${bms ? " · " + esc(bms.code) : ""}${cs ? " · " + esc(cs.code) : ""}</p>`,
+      onSubmit: (v) => {
+        if (!v.name.trim()) return UI.toast("Nhập tên mẫu", "err"), false;
+        Store.state.templates.push({ id: Store.uid("tpl-"), name: v.name.trim(),
+          cellCode: cell ? cell.code : "", bmsCode: bms ? bms.code : "", caseCode: cs ? cs.code : "",
+          s: Math.max(1, Math.round(s)), p: Math.max(1, Math.round(p)) });
+        Store.save(); initSelects(); UI.toast("Đã lưu mẫu mới");
+        setTimeout(openTemplateManager, 0);
+      },
+    });
+  }
+
   function persist() {
     S.estimator.config = {
       productCode: $("product-code").value,
@@ -285,6 +375,7 @@ const Estimator = (function () {
     $("btn-add").addEventListener("click", addExtra);
     $("btn-print-est").addEventListener("click", () => window.print());
     $("btn-to-quote").addEventListener("click", () => Quotes.newFromEstimator(getQuote()));
+    $("tpl-manage").addEventListener("click", openTemplateManager);
   }
 
   function init() {
