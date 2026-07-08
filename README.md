@@ -7,15 +7,17 @@ Website tĩnh **quản lý bảng giá vật tư · khách hàng · báo giá** 
 ## ✨ Tính năng
 
 **Dự toán & BOM**
-- **Mẫu pack chuẩn** dựng sẵn: LiFePO4 12V/24V/48V, Li-ion 36V/48V/60V, hoặc tùy chỉnh S/P tự do.
-- **BOM tự động scale** theo số cell (kẽm hàn, đế giữ cell, BMS, vỏ hộp, dây, giắc, cầu chì...).
+- **Mã sản phẩm** + **mẫu pack chuẩn** (LiFePO4 12/24/48V, Li-ion 36/48/60V, pin xe nâng 102Ah, hoặc tùy chỉnh S/P).
+- **Chọn loại Cell / BMS / Vỏ** trực tiếp từ danh mục bảng giá (dropdown tự cập nhật theo phân loại).
+- **BOM tự động scale** theo số cell (kẽm hàn, đế giữ cell, dây, giắc, cầu chì...).
 - **Tính thông số pack**: cấu hình `S×P`, điện áp (V), dung lượng (Ah), năng lượng (kWh).
 - **Bảng dự toán giá thành**: vật tư → hao hụt → nhân công → COGS → quản lý → lợi nhuận → VAT → **giá bán**.
 - Một cú nhấp **“Tạo báo giá từ dự toán này”**.
 
-**Quản lý bảng giá**
-- **Thư viện cell** (LiFePO4 32700/32650/26650, Li-ion 21700/18650) và **vật tư phụ** — thêm/sửa/xóa, chỉnh giá & định mức, dùng chung cho dự toán và báo giá.
-- **Nhập / xuất Excel**: xuất bảng giá ra `.xlsx` (2 sheet Cell & VatTu) làm mẫu, chỉnh trong Excel rồi nhập lại — khớp theo tên (có sẵn thì cập nhật giá, chưa có thì thêm mới). Hỗ trợ `.xlsx / .xls / .csv`, đọc offline bằng thư viện SheetJS đóng gói sẵn.
+**Bảng giá đầu vào**
+- Danh mục vật tư đầy đủ trường: **Mã mặt hàng · Tên [Thông số] · Mã NSX · Hãng SX · Đơn giá · Thời gian đặt hàng · Tồn kho tối thiểu**.
+- **Phân loại tự động theo tiền tố mã**: `CELL/CE-` → Cell, `BMS` → BMS, `CASE` → Vỏ, `PCB` → PCB, còn lại → Vật tư phụ (đổi tay được). Lọc nhanh theo phân loại + tìm kiếm.
+- **Nhập / xuất Excel**: xuất `.xlsx` đúng định dạng cột làm mẫu, chỉnh rồi nhập lại — khớp theo **Mã mặt hàng** (có sẵn thì cập nhật, chưa có thì thêm mới). Hỗ trợ `.xlsx / .xls / .csv`, đọc offline bằng thư viện SheetJS đóng gói sẵn.
 
 **Quản lý khách hàng**
 - Danh bạ khách hàng (người liên hệ, công ty, SĐT, email, địa chỉ, MST), tìm kiếm nhanh, đếm số báo giá theo từng khách.

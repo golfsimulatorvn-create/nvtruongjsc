@@ -1,6 +1,6 @@
 /* =========================================================================
- * estimator.js — Công cụ dự toán & BOM (dùng dữ liệu từ Store)
- * Xuất: Estimator.render(), Estimator.getQuote()
+ * estimator.js — Công cụ dự toán & BOM (dữ liệu từ bảng giá đầu vào)
+ * Thêm: Mã sản phẩm, chọn loại BMS, chọn loại Vỏ.
  * ========================================================================= */
 const Estimator = (function () {
   "use strict";
@@ -8,14 +8,25 @@ const Estimator = (function () {
   const S = Store.state;
 
   function num(el) { return parseFloat(el.value) || 0; }
+  function fillSelect(sel, items, current) {
+    sel.innerHTML = "";
+    items.forEach((it) => sel.add(new Option(`${it.code} — ${it.name}`, it.id)));
+    if (current && items.some((i) => i.id === current)) sel.value = current;
+  }
 
   function initSelects() {
     const tpl = $("template");
-    tpl.innerHTML = "";
-    TEMPLATES.forEach((t) => tpl.add(new Option(t.name, t.id)));
-    const cell = $("cell");
-    cell.innerHTML = "";
-    S.cells.forEach((c) => cell.add(new Option(c.name, c.id)));
+    if (!tpl.options.length) TEMPLATES.forEach((t) => tpl.add(new Option(t.name, t.id)));
+    fillSelect($("cell"), Store.cellItems(), $("cell").value);
+    fillSelect($("bms"), Store.itemsByCat("BMS"), $("bms").value);
+    fillSelect($("case"), Store.itemsByCat("CASE"), $("case").value);
+  }
+
+  // Cập nhật lại dropdown + BOM khi bảng giá đổi (không gắn lại sự kiện)
+  function refresh() {
+    initSelects();
+    syncCellPrice();
+    render();
   }
 
   function loadFactors() {
@@ -29,23 +40,37 @@ const Estimator = (function () {
     $("qty").value = f.qty ?? 1;
   }
 
+  function byCode(code) { return Store.findItemByCode(code); }
+
   function applyConfig() {
     const cfg = S.estimator.config;
-    if (cfg && cfg.templateId) {
-      $("template").value = cfg.templateId;
-      $("cell").value = cfg.cellId;
+    if (cfg && cfg.cellId) {
+      $("product-code").value = cfg.productCode || "";
+      $("template").value = cfg.templateId || "custom";
+      selVal("cell", cfg.cellId);
+      selVal("bms", cfg.bmsId);
+      selVal("case", cfg.caseId);
       $("series").value = cfg.s;
       $("parallel").value = cfg.p;
     } else {
       applyTemplate("lfp-48v");
     }
     syncCellPrice();
+    render();
+  }
+
+  function selVal(id, val) {
+    const sel = $(id);
+    if (val && [...sel.options].some((o) => o.value === val)) sel.value = val;
   }
 
   function applyTemplate(id) {
     const t = TEMPLATES.find((x) => x.id === id) || TEMPLATES[0];
     $("template").value = id;
-    $("cell").value = t.cell;
+    const cell = byCode(t.cellCode), bms = byCode(t.bmsCode), cs = byCode(t.caseCode);
+    if (cell) $("cell").value = cell.id;
+    if (bms) $("bms").value = bms.id;
+    if (cs) $("case").value = cs.id;
     $("series").value = t.s;
     $("parallel").value = t.p;
     syncCellPrice();
@@ -53,7 +78,7 @@ const Estimator = (function () {
   }
 
   function syncCellPrice() {
-    const c = Store.findCell($("cell").value) || S.cells[0];
+    const c = Store.findItem($("cell").value) || Store.cellItems()[0];
     if (c) $("cell-price").value = c.price;
   }
 
@@ -61,30 +86,28 @@ const Estimator = (function () {
     const s = Math.max(1, Math.round(num($("series"))));
     const p = Math.max(1, Math.round(num($("parallel"))));
     const N = s * p;
-    const cell = Store.findCell($("cell").value) || S.cells[0];
+    const cell = Store.findItem($("cell").value) || Store.cellItems()[0];
+    const bms = Store.findItem($("bms").value);
+    const cs = Store.findItem($("case").value);
     const cellPrice = num($("cell-price"));
+    const ov = S.estimator.qtyOverrides;
     const rows = [];
 
-    rows.push({ key: "cell", name: `Cell ${cell.name}`, unit: "cell", qty: N, price: cellPrice, locked: true });
+    if (cell) rows.push({ key: "cell", name: `Cell ${cell.name}`, unit: cell.unit || "cell", qty: N, price: cellPrice, locked: true });
+    if (bms) rows.push({ key: bms.id, itemId: bms.id, name: `BMS: ${bms.name}`, unit: bms.unit || "cái", qty: ov[bms.id] != null ? ov[bms.id] : 1, price: bms.price });
+    if (cs) rows.push({ key: cs.id, itemId: cs.id, name: `Vỏ: ${cs.name}`, unit: cs.unit || "cái", qty: ov[cs.id] != null ? ov[cs.id] : 1, price: cs.price });
 
-    S.materials.forEach((m) => {
+    Store.autoMaterials().forEach((m) => {
       let q = (m.qtyFixed || 0) + (m.qtyPerCell || 0) * N + (m.qtyPerS || 0) * s;
       q = Math.round(q * 100) / 100;
-      const key = "mat:" + m.key;
-      rows.push({
-        key,
-        name: m.name,
-        unit: m.unit,
-        qty: S.estimator.qtyOverrides[key] != null ? S.estimator.qtyOverrides[key] : q,
-        price: m.price,
-      });
+      rows.push({ key: m.id, itemId: m.id, name: m.name, unit: m.unit, qty: ov[m.id] != null ? ov[m.id] : q, price: m.price });
     });
 
     (S.estimator.extra || []).forEach((e, i) =>
       rows.push({ key: "extra:" + i, name: e.name, unit: e.unit, qty: e.qty, price: e.price, extra: true })
     );
 
-    return { s, p, N, cell, rows };
+    return { s, p, N, cell, bms, cs, rows };
   }
 
   function render() {
@@ -92,7 +115,6 @@ const Estimator = (function () {
     const body = $("bom-body");
     body.innerHTML = "";
     let material = 0;
-
     bom.rows.forEach((r, idx) => {
       const total = r.qty * r.price;
       material += total;
@@ -107,7 +129,6 @@ const Estimator = (function () {
         <td class="col-act no-print">${r.extra ? `<button class="btn-del" data-del="${r.key}">✕</button>` : ""}</td>`;
       body.appendChild(tr);
     });
-
     $("sum-material").textContent = fmt(material);
     bindInputs();
     renderSpec(bom);
@@ -134,8 +155,8 @@ const Estimator = (function () {
     if (key === "cell") {
       if (field === "price") {
         $("cell-price").value = el.value;
-        const c = Store.findCell($("cell").value);
-        if (c) c.price = val; // cập nhật bảng giá
+        const c = Store.findItem($("cell").value);
+        if (c) c.price = val;
       }
       softTotals();
       return;
@@ -146,10 +167,10 @@ const Estimator = (function () {
       softTotals();
       return;
     }
-    // vật tư chuẩn
-    const m = S.materials.find((x) => "mat:" + x.key === key);
-    if (field === "price" && m) m.price = val;       // đổi giá -> cập nhật bảng giá
-    if (field === "qty") S.estimator.qtyOverrides[key] = val; // đổi SL -> override cục bộ
+    // dòng vật tư từ danh mục (key = item id)
+    const item = Store.findItem(key);
+    if (field === "price" && item) item.price = val;
+    if (field === "qty") S.estimator.qtyOverrides[key] = val;
     softTotals();
   }
 
@@ -169,14 +190,16 @@ const Estimator = (function () {
   }
 
   function renderSpec(bom) {
-    const V = bom.s * bom.cell.v, Ah = bom.p * bom.cell.ah, Wh = V * Ah;
+    const c = bom.cell || { v: 0, ah: 0 };
+    const V = bom.s * (c.v || 0), Ah = bom.p * (c.ah || 0), Wh = V * Ah;
     $("spec-card").innerHTML = `
       <div class="spec"><span>Cấu hình</span><b>${bom.s}S${bom.p}P</b></div>
       <div class="spec"><span>Tổng cell</span><b>${bom.N}</b></div>
       <div class="spec"><span>Điện áp</span><b>${V.toFixed(1)} V</b></div>
       <div class="spec"><span>Dung lượng</span><b>${Ah.toFixed(1)} Ah</b></div>
       <div class="spec"><span>Năng lượng</span><b>${(Wh / 1000).toFixed(2)} kWh</b></div>`;
-    $("bom-title").textContent = `3. Định mức vật tư (BOM) — ${bom.s}S${bom.p}P · ${V.toFixed(1)}V ${Ah.toFixed(1)}Ah`;
+    const pc = $("product-code").value.trim();
+    $("bom-title").textContent = `Định mức vật tư (BOM)${pc ? " — " + pc : ""} · ${bom.s}S${bom.p}P`;
   }
 
   function calc(material, bom) {
@@ -218,19 +241,17 @@ const Estimator = (function () {
     $("summary").innerHTML = html;
   }
 
-  /* Dữ liệu để chuyển sang báo giá */
   function getQuote() {
     const bom = buildBom();
     let material = 0;
     bom.rows.forEach((r) => (material += r.qty * r.price));
     const c = calc(material, bom);
-    const V = (bom.s * bom.cell.v).toFixed(1), Ah = (bom.p * bom.cell.ah).toFixed(1);
-    return {
-      productName: `Pin ${bom.cell.chem} ${bom.s}S${bom.p}P · ${V}V ${Ah}Ah`,
-      qty: c.f.qty,
-      unitBeforeVat: Math.round(c.beforeVat),
-      vatPct: num($("vat")),
-    };
+    const pc = $("product-code").value.trim();
+    const chem = bom.cell ? bom.cell.chem || "" : "";
+    const V = bom.cell ? (bom.s * (bom.cell.v || 0)).toFixed(1) : "0";
+    const Ah = bom.cell ? (bom.p * (bom.cell.ah || 0)).toFixed(1) : "0";
+    const name = `${pc ? pc + " — " : ""}Pin ${chem} ${bom.s}S${bom.p}P · ${V}V ${Ah}Ah`;
+    return { productCode: pc, productName: name.trim(), qty: c.f.qty, unitBeforeVat: Math.round(c.beforeVat), vatPct: num($("vat")) };
   }
 
   function addExtra() {
@@ -240,7 +261,9 @@ const Estimator = (function () {
 
   function persist() {
     S.estimator.config = {
-      templateId: $("template").value, cellId: $("cell").value,
+      productCode: $("product-code").value,
+      templateId: $("template").value,
+      cellId: $("cell").value, bmsId: $("bms").value, caseId: $("case").value,
       s: num($("series")), p: num($("parallel")),
     };
     S.estimator.factors = {
@@ -253,6 +276,8 @@ const Estimator = (function () {
   function bind() {
     $("template").addEventListener("change", (e) => applyTemplate(e.target.value));
     $("cell").addEventListener("change", () => { syncCellPrice(); render(); });
+    ["bms", "case"].forEach((id) => $(id).addEventListener("change", render));
+    $("product-code").addEventListener("input", () => { renderSpec(buildBom()); persist(); });
     ["cell-price", "series", "parallel"].forEach((id) => $(id).addEventListener("input", render));
     ["waste", "labor-cell", "labor-fixed", "overhead", "margin", "vat", "qty"].forEach((id) =>
       $(id).addEventListener("input", softTotals)
@@ -267,8 +292,7 @@ const Estimator = (function () {
     loadFactors();
     bind();
     applyConfig();
-    render();
   }
 
-  return { init, render, getQuote };
+  return { init, render, refresh, getQuote };
 })();

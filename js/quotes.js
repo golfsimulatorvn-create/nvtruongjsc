@@ -237,20 +237,21 @@ const Quotes = (function () {
     if (addPl) addPl.onclick = pickFromPriceList;
   }
 
-  /* Thêm dòng từ bảng giá */
+  /* Thêm dòng từ bảng giá đầu vào */
   function pickFromPriceList() {
-    const cellOpts = S.cells.map((c) => `<option value="cell:${c.id}">Cell · ${esc(c.name)} — ${fmt(c.price)}đ</option>`).join("");
-    const matOpts = S.materials.map((m, i) => `<option value="mat:${i}">Vật tư · ${esc(m.name)} — ${fmt(m.price)}đ</option>`).join("");
+    const opts = S.items
+      .slice()
+      .sort((a, b) => (a.category + a.code).localeCompare(b.category + b.code))
+      .map((it) => `<option value="${it.id}">[${esc(categoryLabel(it.category))}] ${esc(it.code)} — ${esc(it.name)} · ${fmt(it.price)}đ</option>`)
+      .join("");
     modal({
       title: "Chọn từ bảng giá",
-      bodyHtml: `<label class="field"><span>Mục</span><select data-name="pick">${cellOpts}${matOpts}</select></label>
-                 <label class="field"><span>Số lượng</span><input data-name="qty" type="number" min="1" value="1"/></label>`,
+      bodyHtml: `<label class="field"><span>Mặt hàng</span><select data-name="pick">${opts}</select></label>
+                 <label class="field"><span>Số lượng</span><input data-name="qty" type="number" min="0" step="any" value="1"/></label>`,
       onSubmit: (v) => {
-        const [type, ref] = v.pick.split(":");
-        let it;
-        if (type === "cell") { const c = Store.findCell(ref); it = { name: "Cell " + c.name, unit: "cell", qty: +v.qty || 1, price: c.price }; }
-        else { const m = S.materials[+ref]; it = { name: m.name, unit: m.unit, qty: +v.qty || 1, price: m.price }; }
-        editing.items.push(it);
+        const it = Store.findItem(v.pick);
+        if (!it) return;
+        editing.items.push({ name: `${it.code} — ${it.name}`, unit: it.unit || "cái", qty: +v.qty || 1, price: it.price });
         renderEditor();
       },
     });

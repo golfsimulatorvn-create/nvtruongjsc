@@ -309,3 +309,23 @@ table.q-items { width: 100%; }
 
 /* ---- Hộp tóm tắt nhập Excel ---- */
 .import-summary { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.8; }
+
+/* ---- Lọc phân loại (chips) ---- */
+.cat-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip {
+  border: 1px solid var(--border); background: #fff; color: var(--text);
+  padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.chip b { color: var(--muted); font-weight: 700; }
+.chip:hover { border-color: var(--primary); }
+.chip.is-active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chip.is-active b { color: #fff; }
+
+/* ---- Tag màu bổ sung ---- */
+.tag-amber { background: #fef3c7; color: #b45309; }
+.tag-purple { background: #ede9fe; color: #6d28d9; }
+
+/* ---- Khối thông số nâng cao trong modal ---- */
+.adv { margin-top: 6px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.adv summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--primary-dark); }
+.adv .grid-3 { margin-top: 10px; }

@@ -30,16 +30,24 @@
     <div class="layout">
       <div class="panel no-print">
         <h2 class="panel-title">1. Cấu hình pack Pin</h2>
-        <label class="field"><span>Mẫu pack chuẩn</span><select id="template"></select></label>
+        <div class="grid-2">
+          <label class="field"><span>Mã sản phẩm</span><input id="product-code" placeholder="VD: HHXN24204V1" /></label>
+          <label class="field"><span>Mẫu pack chuẩn</span><select id="template"></select></label>
+        </div>
         <div class="grid-2">
           <label class="field"><span>Loại cell</span><select id="cell"></select></label>
           <label class="field"><span>Đơn giá cell (đ/cell)</span><input id="cell-price" type="number" min="0" step="100" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Loại BMS</span><select id="bms"></select></label>
+          <label class="field"><span>Loại Vỏ (Case)</span><select id="case"></select></label>
         </div>
         <div class="grid-2">
           <label class="field"><span>Số cell nối tiếp (S)</span><input id="series" type="number" min="1" step="1" /></label>
           <label class="field"><span>Số cell song song (P)</span><input id="parallel" type="number" min="1" step="1" /></label>
         </div>
         <div class="spec-card" id="spec-card"></div>
+        <p class="hint">Danh sách BMS/Vỏ lấy từ tab <b>Bảng giá</b> (theo phân loại mã). Thêm loại mới ở đó sẽ tự hiện tại đây.</p>
 
         <h2 class="panel-title">2. Hệ số chi phí</h2>
         <div class="grid-2">
@@ -98,34 +106,24 @@
           <button class="btn btn-sm btn-ghost" id="pl-export-excel" type="button">⬇️ Xuất Excel (mẫu)</button>
         </div>
       </div>
-      <p class="hint">Tải <b>“Xuất Excel (mẫu)”</b> để lấy file có sẵn dữ liệu hiện tại và đúng định dạng cột (2 sheet: <b>Cell</b> và <b>VatTu</b>). Chỉnh giá trong Excel rồi <b>“Nhập từ Excel”</b> — hệ thống khớp theo <b>tên</b>: có sẵn thì cập nhật giá, chưa có thì thêm mới. Hỗ trợ .xlsx / .xls / .csv.</p>
+      <p class="hint">Tải <b>“Xuất Excel (mẫu)”</b> để lấy file đúng định dạng cột. Chỉnh trong Excel rồi <b>“Nhập từ Excel”</b> — khớp theo <b>Mã mặt hàng</b>: có sẵn thì cập nhật, chưa có thì thêm mới. Phân loại tự nhận theo tiền tố mã (CELL/CE, BMS, CASE, PCB, còn lại = phụ). Hỗ trợ .xlsx / .xls / .csv.</p>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2 class="panel-title">Bảng giá Cell</h2>
-        <button class="btn btn-sm" id="pl-add-cell" type="button">+ Thêm cell</button>
+        <h2 class="panel-title">Bảng giá đầu vào</h2>
+        <div class="head-tools">
+          <input id="pl-search" class="search" type="search" placeholder="🔍 Tìm mã / tên / hãng..." />
+          <button class="btn btn-sm" id="pl-add-item" type="button">+ Thêm mặt hàng</button>
+        </div>
       </div>
+      <div class="cat-filter" id="pl-cat-filter"></div>
       <div class="table-scroll">
-        <table class="grid-table" id="tbl-cells"><thead><tr>
-          <th>Tên cell</th><th>Hóa học</th><th class="col-num">Điện áp (V)</th>
-          <th class="col-num">Dung lượng (Ah)</th><th class="col-num">Đơn giá (đ)</th><th class="col-act"></th>
-        </tr></thead><tbody id="cells-body"></tbody></table>
+        <table class="grid-table" id="tbl-items"><thead><tr>
+          <th>Phân loại</th><th>Mã mặt hàng</th><th>Tên mặt hàng [Thông số]</th><th>Mã NSX</th><th>Hãng SX</th>
+          <th class="col-num">Đơn giá (đ)</th><th>TG đặt hàng</th><th class="col-num">Tồn tối thiểu</th><th class="col-act"></th>
+        </tr></thead><tbody id="items-body"></tbody></table>
       </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2 class="panel-title">Bảng giá Vật tư phụ</h2>
-        <button class="btn btn-sm" id="pl-add-mat" type="button">+ Thêm vật tư</button>
-      </div>
-      <div class="table-scroll">
-        <table class="grid-table" id="tbl-mats"><thead><tr>
-          <th>Vật tư</th><th class="col-unit">ĐVT</th><th class="col-num">Đơn giá (đ)</th>
-          <th class="col-num">Cố định/pack</th><th class="col-num">Theo cell</th><th class="col-num">Theo S</th><th class="col-act"></th>
-        </tr></thead><tbody id="mats-body"></tbody></table>
-      </div>
-      <p class="hint">Định mức: <b>Số lượng = Cố định + (Theo cell × tổng cell) + (Theo S × số nối tiếp)</b>. Chỉnh 0 nếu không dùng.</p>
     </div>
 
     <div class="panel">
