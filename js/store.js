@@ -21,6 +21,7 @@ const Store = (function () {
     priceHistory: [], // {ts,kind,name,field,old,new}
     items: [],        // bảng giá đầu vào (xem data.js để biết schema)
     templates: [],    // mẫu pack chuẩn: {id,name,cellCode,bmsCode,caseCode,s,p}
+    boms: [],         // BOM đã lưu: {id,name,snapshot(estimator),savedAt}
     customers: [],    // {id,name,company,phone,email,address,taxCode,note,createdAt}
     quotes: [],       // {id,code,customerId,date,validDays,items[],discountPct,vatPct,note,status,createdAt}
     counters: {},     // { "2026": 3 }
@@ -65,6 +66,7 @@ const Store = (function () {
     // Seed / chuẩn hóa mẫu pack chuẩn
     if (!state.templates || !state.templates.length) state.templates = TEMPLATES.map((t) => ({ ...t }));
     state.templates.forEach((t) => { if (!t.id) t.id = uid("tpl-"); });
+    if (!state.boms) state.boms = [];
 
     delete state.cells;
     delete state.materials;

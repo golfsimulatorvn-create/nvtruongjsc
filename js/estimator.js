@@ -48,6 +48,7 @@ const Estimator = (function () {
   function applyConfig() {
     const cfg = S.estimator.config;
     if (cfg && cfg.cellId) {
+      $("bom-name").value = cfg.bomName || "";
       $("product-code").value = cfg.productCode || "";
       $("template").value = cfg.templateId || "custom";
       selVal("cell", cfg.cellId);
@@ -203,7 +204,8 @@ const Estimator = (function () {
       <div class="spec"><span>Dung lượng</span><b>${Ah.toFixed(1)} Ah</b></div>
       <div class="spec"><span>Năng lượng</span><b>${(Wh / 1000).toFixed(2)} kWh</b></div>`;
     const pc = $("product-code").value.trim();
-    $("bom-title").textContent = `Định mức vật tư (BOM)${pc ? " — " + pc : ""} · ${bom.s}S${bom.p}P`;
+    const bn = $("bom-name").value.trim();
+    $("bom-title").textContent = `BOM${bn ? ": " + bn : ""}${pc ? " · " + pc : ""} · ${bom.s}S${bom.p}P`;
   }
 
   function calc(material, bom) {
@@ -349,8 +351,105 @@ const Estimator = (function () {
     });
   }
 
+  /* ================= THÊM VẬT TƯ TỪ BẢNG GIÁ ================= */
+  function addFromPriceList() {
+    const opts = S.items.slice()
+      .sort((a, b) => (a.category + a.code).localeCompare(b.category + b.code))
+      .map((it) => `<option value="${it.id}">[${esc(categoryLabel(it.category))}] ${esc(it.code)} — ${esc(it.name)} · ${fmt(it.price)}đ</option>`)
+      .join("");
+    UI.modal({
+      title: "Thêm vật tư từ bảng giá",
+      bodyHtml: `<label class="field"><span>Mặt hàng</span><select data-name="pick">${opts}</select></label>
+        <label class="field"><span>Số lượng</span><input data-name="qty" type="number" min="0" step="any" value="1"/></label>
+        <p class="hint">Đơn giá tự lấy từ bảng giá; có thể sửa lại trong bảng BOM.</p>`,
+      onSubmit: (v) => {
+        const it = Store.findItem(v.pick);
+        if (!it) return;
+        S.estimator.extra.push({ name: `${it.code} — ${it.name}`, unit: it.unit || "cái", qty: +v.qty || 1, price: it.price });
+        render();
+      },
+    });
+  }
+
+  /* ================= LƯU / MỞ / XUẤT BOM ================= */
+  function saveBom() {
+    persist();
+    const name = $("bom-name").value.trim() || $("product-code").value.trim() || "BOM không tên";
+    const snapshot = Store.clone(S.estimator);
+    const ex = S.boms.find((b) => b.name.toLowerCase() === name.toLowerCase());
+    if (ex) {
+      if (!UI.confirmBox(`Đã có BOM "${name}". Ghi đè?`)) return;
+      ex.snapshot = snapshot; ex.savedAt = Date.now();
+    } else {
+      S.boms.push({ id: Store.uid("bom-"), name, snapshot, savedAt: Date.now() });
+    }
+    Store.save();
+    UI.toast("Đã lưu BOM: " + name);
+  }
+
+  function openBomList() {
+    const rows = S.boms.slice().sort((a, b) => b.savedAt - a.savedAt).map((b) => {
+      const d = new Date(b.savedAt).toLocaleDateString("vi-VN");
+      return `<div class="tpl-row">
+        <div><b>${esc(b.name)}</b><br><small>Lưu ${d}</small></div>
+        <div class="tpl-acts">
+          <button class="btn btn-sm" data-bload="${b.id}" type="button">Mở</button>
+          <button class="btn-del" data-bdel="${b.id}" type="button">✕</button>
+        </div></div>`;
+    }).join("");
+    UI.modal({
+      title: "BOM đã lưu", okText: "Đóng",
+      bodyHtml: `<div class="tpl-list">${rows || '<p class="hint">Chưa có BOM nào được lưu.</p>'}</div>`,
+      onSubmit: () => true,
+    });
+    document.querySelectorAll("[data-bload]").forEach((el) => (el.onclick = () => loadBom(el.getAttribute("data-bload"))));
+    document.querySelectorAll("[data-bdel]").forEach((el) => (el.onclick = () => {
+      if (UI.confirmBox("Xóa BOM này?")) { S.boms = S.boms.filter((x) => x.id !== el.getAttribute("data-bdel")); Store.save(); setTimeout(openBomList, 0); }
+    }));
+  }
+
+  function loadBom(id) {
+    const b = S.boms.find((x) => x.id === id);
+    if (!b) return;
+    S.estimator = Store.clone(b.snapshot);
+    UI.closeModal();
+    loadFactors();
+    applyConfig();
+    Store.save();
+    UI.toast("Đã mở BOM: " + b.name);
+  }
+
+  function exportBomExcel() {
+    if (!window.XLSX) return UI.toast("Thư viện Excel chưa sẵn sàng", "err");
+    const bom = buildBom();
+    let material = 0;
+    const bn = $("bom-name").value.trim(), pc = $("product-code").value.trim();
+    const aoa = [];
+    aoa.push(["BOM", bn || pc || ""]);
+    if (pc) aoa.push(["Mã sản phẩm", pc]);
+    aoa.push(["Cấu hình", `${bom.s}S${bom.p}P`, "Tổng cell", bom.N]);
+    aoa.push([]);
+    aoa.push(["STT", "Hạng mục / Vật tư", "ĐVT", "Số lượng", "Đơn giá", "Thành tiền"]);
+    bom.rows.forEach((r, i) => { const t = r.qty * r.price; material += t; aoa.push([i + 1, r.name, r.unit, r.qty, r.price, t]); });
+    const c = calc(material, bom);
+    aoa.push(["", "", "", "", "Tổng vật tư", material]);
+    aoa.push(["", "", "", "", "Hao hụt", c.wasteCost]);
+    aoa.push(["", "", "", "", "Nhân công", c.labor]);
+    aoa.push(["", "", "", "", "Giá thành SX (COGS)", c.cogs]);
+    aoa.push(["", "", "", "", "Chi phí quản lý", c.overheadCost]);
+    aoa.push(["", "", "", "", "Lợi nhuận", c.profit]);
+    aoa.push(["", "", "", "", "Giá bán trước thuế", c.beforeVat]);
+    aoa.push(["", "", "", "", "VAT", c.vatCost]);
+    aoa.push(["", "", "", "", "ĐƠN GIÁ BÁN/PACK (đã VAT)", c.price]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "BOM");
+    XLSX.writeFile(wb, (bn || pc || "bom").replace(/[^\w-]+/g, "_") + ".xlsx");
+    UI.toast("Đã xuất BOM ra Excel");
+  }
+
   function persist() {
     S.estimator.config = {
+      bomName: $("bom-name").value,
       productCode: $("product-code").value,
       templateId: $("template").value,
       cellId: $("cell").value, bmsId: $("bms").value, caseId: $("case").value,
@@ -368,11 +467,16 @@ const Estimator = (function () {
     $("cell").addEventListener("change", () => { syncCellPrice(); render(); });
     ["bms", "case"].forEach((id) => $(id).addEventListener("change", render));
     $("product-code").addEventListener("input", () => { renderSpec(buildBom()); persist(); });
+    $("bom-name").addEventListener("input", () => { renderSpec(buildBom()); persist(); });
     ["cell-price", "series", "parallel"].forEach((id) => $(id).addEventListener("input", render));
     ["waste", "labor-cell", "labor-fixed", "overhead", "margin", "vat", "qty"].forEach((id) =>
       $(id).addEventListener("input", softTotals)
     );
     $("btn-add").addEventListener("click", addExtra);
+    $("btn-add-from-pl").addEventListener("click", addFromPriceList);
+    $("btn-save-bom").addEventListener("click", saveBom);
+    $("btn-load-bom").addEventListener("click", openBomList);
+    $("btn-export-bom").addEventListener("click", exportBomExcel);
     $("btn-print-est").addEventListener("click", () => window.print());
     $("btn-to-quote").addEventListener("click", () => Quotes.newFromEstimator(getQuote()));
     $("tpl-manage").addEventListener("click", openTemplateManager);

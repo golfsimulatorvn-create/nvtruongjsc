@@ -30,6 +30,7 @@
     <div class="layout">
       <div class="panel no-print">
         <h2 class="panel-title">1. Cấu hình pack Pin</h2>
+        <label class="field"><span>Tên BOM</span><input id="bom-name" placeholder="VD: Pin xe nâng 24204 (16S 102Ah)" /></label>
         <div class="grid-2">
           <label class="field"><span>Mã sản phẩm</span><input id="product-code" placeholder="VD: HHXN24204V1" /></label>
           <label class="field"><span>Mẫu pack chuẩn <button type="button" id="tpl-manage" class="mini-link">⚙ Quản lý mẫu</button></span><select id="template"></select></label>
@@ -69,7 +70,10 @@
       <div class="panel panel-wide">
         <div class="panel-head">
           <h2 class="panel-title" id="bom-title">3. Định mức vật tư (BOM)</h2>
-          <button id="btn-add" class="btn btn-sm no-print" type="button">+ Thêm dòng</button>
+          <div class="head-tools no-print">
+            <button id="btn-add-from-pl" class="btn btn-sm btn-ghost" type="button">+ Từ bảng giá</button>
+            <button id="btn-add" class="btn btn-sm" type="button">+ Thêm dòng</button>
+          </div>
         </div>
         <div class="table-scroll">
           <table class="bom" id="bom-table">
@@ -88,8 +92,11 @@
         <h2 class="panel-title">4. Bảng dự toán giá thành</h2>
         <div class="summary" id="summary"></div>
         <div class="panel-actions no-print">
-          <button id="btn-to-quote" class="btn" type="button">📄 Tạo báo giá từ dự toán này</button>
-          <button id="btn-print-est" class="btn btn-ghost" type="button">🖨️ In dự toán</button>
+          <button id="btn-save-bom" class="btn" type="button">💾 Lưu BOM</button>
+          <button id="btn-load-bom" class="btn btn-ghost" type="button">📂 BOM đã lưu</button>
+          <button id="btn-export-bom" class="btn btn-ghost" type="button">⬇️ Xuất Excel</button>
+          <button id="btn-to-quote" class="btn" type="button">📄 Tạo báo giá</button>
+          <button id="btn-print-est" class="btn btn-ghost" type="button">🖨️ In</button>
         </div>
       </div>
     </div>
