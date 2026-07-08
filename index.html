@@ -51,27 +51,30 @@
         <div class="spec-card" id="spec-card"></div>
         <p class="hint">Danh sách BMS/Vỏ lấy từ tab <b>Bảng giá</b> (theo phân loại mã). Thêm loại mới ở đó sẽ tự hiện tại đây.</p>
 
-        <h2 class="panel-title">2. Hệ số chi phí</h2>
+        <h2 class="panel-title">2. Hệ số chi phí <button type="button" id="btn-cell-rates" class="mini-link">⚙ Định mức theo loại cell</button></h2>
         <div class="grid-2">
           <label class="field"><span>Hao hụt vật tư (%)</span><input id="waste" type="number" min="0" step="0.5" /></label>
           <label class="field"><span>Nhân công (đ/cell)</span><input id="labor-cell" type="number" min="0" step="500" /></label>
         </div>
         <div class="grid-2">
+          <label class="field"><span>Quản lý (đ/cell)</span><input id="mgmt-cell" type="number" min="0" step="500" /></label>
           <label class="field"><span>Nhân công cố định (đ/pack)</span><input id="labor-fixed" type="number" min="0" step="1000" /></label>
-          <label class="field"><span>Chi phí quản lý (%)</span><input id="overhead" type="number" min="0" step="1" /></label>
         </div>
         <div class="grid-2">
           <label class="field"><span>Lợi nhuận (%)</span><input id="margin" type="number" min="0" step="1" /></label>
           <label class="field"><span>Thuế VAT (%)</span><input id="vat" type="number" min="0" step="1" /></label>
         </div>
         <label class="field"><span>Số lượng pack</span><input id="qty" type="number" min="1" step="1" /></label>
-        <p class="hint">Giá cell/vật tư lấy từ tab <b>Bảng giá</b> và lưu tự động.</p>
+        <p class="hint">Nhân công &amp; quản lý tính theo <b>số cell × loại cell</b> (bấm “Định mức theo loại cell” để đặt riêng từng loại). Giá vật tư lấy từ tab <b>Bảng giá</b>.</p>
       </div>
 
       <div class="panel panel-wide">
         <div class="panel-head">
           <h2 class="panel-title" id="bom-title">3. Định mức vật tư (BOM)</h2>
           <div class="head-tools no-print">
+            <label class="btn btn-sm btn-ghost" for="bom-import-file">⬆️ Nhập Excel</label>
+            <input id="bom-import-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+            <button id="btn-regen-bom" class="btn btn-sm btn-ghost" type="button">🔄 Dựng lại</button>
             <button id="btn-add-from-pl" class="btn btn-sm btn-ghost" type="button">+ Từ bảng giá</button>
             <button id="btn-add" class="btn btn-sm" type="button">+ Thêm dòng</button>
           </div>
@@ -79,13 +82,13 @@
         <div class="table-scroll">
           <table class="bom" id="bom-table">
             <thead><tr>
-              <th class="col-idx">#</th><th>Vật tư / Hạng mục</th><th class="col-unit">ĐVT</th>
+              <th class="col-idx">#</th><th>Mã mặt hàng</th><th>Tên mặt hàng</th><th class="col-unit">ĐVT</th>
               <th class="col-num">SL</th><th class="col-num">Đơn giá</th><th class="col-num">Thành tiền</th>
               <th class="col-act no-print"></th>
             </tr></thead>
             <tbody id="bom-body"></tbody>
             <tfoot><tr class="row-total">
-              <td colspan="5">Tổng chi phí vật tư</td><td class="col-num" id="sum-material">0</td><td class="no-print"></td>
+              <td colspan="6">Tổng chi phí vật tư</td><td class="col-num" id="sum-material">0</td><td class="no-print"></td>
             </tr></tfoot>
           </table>
         </div>
@@ -172,8 +175,8 @@
       <div class="cat-filter" id="pr-group-filter"></div>
       <div class="table-scroll">
         <table class="grid-table" id="tbl-products"><thead><tr>
-          <th>Nhóm</th><th>Mã sản phẩm</th><th>Thông số kỹ thuật</th><th class="col-unit">ĐVT</th>
-          <th class="col-num">Giá bán (đ)</th><th class="col-act"></th>
+          <th>Nhóm</th><th>Ảnh</th><th>Mã sản phẩm</th><th>Thông số kỹ thuật</th><th class="col-unit">ĐVT</th>
+          <th class="col-num">Giá NSX</th><th class="col-num">Đại lý 1</th><th class="col-num">Đại lý 2</th><th class="col-num">Giá lẻ</th><th class="col-act"></th>
         </tr></thead><tbody id="products-body"></tbody></table>
       </div>
     </div>

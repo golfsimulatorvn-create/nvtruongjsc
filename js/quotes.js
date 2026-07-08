@@ -75,12 +75,21 @@ const Quotes = (function () {
     return { sub, discount, afterDisc, vat, grand };
   }
 
+  const DEFAULT_TERMS =
+    "Ghi chú:\n" +
+    "- Giá chưa bao gồm chi phí vận chuyển (giá vận chuyển do bên mua trả theo thoả thuận tuỳ vào thời điểm và địa điểm giao hàng).\n" +
+    "- Giá đã bao gồm VAT (8%).\n" +
+    "- Bảo hiểm cháy nổ VPI (10 tỷ).\n" +
+    "- Sản phẩm có đầy đủ giấy chứng nhận chất lượng của Cục Đăng kiểm Việt Nam (đối với pin xe máy).\n" +
+    "- 100% sản phẩm được kiểm tra chất lượng trước khi suất xưởng.";
+
   /* ---------- Tạo mới ---------- */
   function blank() {
     return {
       id: Store.uid("q-"), code: null, customerId: S.customers[0] ? S.customers[0].id : "",
       date: today(), validDays: 15, items: [], discountPct: 0, vatPct: 8,
-      note: "Giá trên đã bao gồm bảo hành. Báo giá có hiệu lực trong thời hạn ghi trên.",
+      priceTier: "le",
+      note: DEFAULT_TERMS,
       preparedBy: "", preparedPhone: S.company.phone || "",
       status: "draft", createdAt: Date.now(),
     };
@@ -187,6 +196,9 @@ const Quotes = (function () {
         </label>
         <label class="field"><span>Người báo giá</span><input data-q="preparedBy" value="${esc(q.preparedBy || "")}" placeholder="Họ tên người lập"/></label>
         <label class="field"><span>SĐT người báo giá</span><input data-q="preparedPhone" value="${esc(q.preparedPhone || "")}" placeholder="Số điện thoại"/></label>
+        <label class="field"><span>Bảng giá áp dụng (khách hàng)</span>
+          <select data-q="priceTier">${PRICE_TIERS.map((t) => `<option value="${t.key}" ${q.priceTier === t.key ? "selected" : ""}>${esc(t.label)}</option>`).join("")}</select>
+        </label>
       </div>
 
       <div class="q-cust">
@@ -223,7 +235,7 @@ const Quotes = (function () {
       </div>
 
       <div class="q-note">
-        <label class="field no-print"><span>Ghi chú / điều khoản</span><textarea data-q="note" rows="2">${esc(q.note)}</textarea></label>
+        <label class="field no-print"><span>Ghi chú / điều khoản (sửa được)</span><textarea data-q="note" rows="6">${esc(q.note)}</textarea></label>
         <div class="only-print q-note-print">${esc(q.note)}</div>
       </div>
       ${co.bank ? `<div class="q-bank">Thông tin thanh toán: ${esc(co.bank)}</div>` : ""}
@@ -251,6 +263,9 @@ const Quotes = (function () {
       if (el.tagName === "SELECT") el.onchange = () => { editing[el.getAttribute("data-q")] = el.value; renderEditor(); };
       else el.onchange = () => renderEditor(); // cập nhật bản in khi rời ô (người báo giá, ghi chú...)
     });
+    // đổi mức giá -> reprice các dòng sản phẩm rồi vẽ lại
+    const tierSel = $("quote-doc").querySelector('[data-q="priceTier"]');
+    if (tierSel) tierSel.onchange = () => { editing.priceTier = tierSel.value; repriceByTier(); renderEditor(); };
     // sửa dòng hàng: text (code/name) cập nhật êm; số (qty/price) tính lại khi rời ô
     $("quote-doc").querySelectorAll("[data-qi]").forEach((el) => {
       const i = +el.getAttribute("data-qi"), f = el.getAttribute("data-f");
@@ -284,24 +299,41 @@ const Quotes = (function () {
     if (addProd) addProd.onclick = pickFromProducts;
   }
 
-  /* Thêm dòng từ kho sản phẩm (giá bán) */
+  const tierPrice = (pr, tier) => (pr.prices ? (pr.prices[tier] || 0) : (pr.price || 0));
+
+  /* Thêm dòng từ kho sản phẩm — theo mức giá đang chọn của báo giá */
   function pickFromProducts() {
     if (!S.products.length) return toast("Kho sản phẩm trống — thêm ở tab Sản phẩm", "err");
+    const tier = editing.priceTier || "le";
     const opts = S.products.slice()
       .sort((a, b) => ((a.group || "") + a.code).localeCompare((b.group || "") + b.code))
-      .map((pr) => `<option value="${pr.id}">[${esc(pr.group || "Khác")}] ${esc(pr.code)} · ${fmt(pr.price)}đ</option>`)
+      .map((pr) => `<option value="${pr.id}">[${esc(pr.group || "Khác")}] ${esc(pr.code)} · ${fmt(tierPrice(pr, tier))}đ</option>`)
       .join("");
+    const tierOpts = PRICE_TIERS.map((t) => `<option value="${t.key}" ${tier === t.key ? "selected" : ""}>${esc(t.label)}</option>`).join("");
     modal({
       title: "Chọn từ kho sản phẩm",
       bodyHtml: `<label class="field"><span>Sản phẩm</span><select data-name="pick">${opts}</select></label>
-                 <label class="field"><span>Số lượng</span><input data-name="qty" type="number" min="0" step="any" value="1"/></label>
-                 <p class="hint">Giá bán tự lấy từ kho sản phẩm; có thể sửa lại trong bảng báo giá.</p>`,
+                 <div class="grid-2">
+                   <label class="field"><span>Bảng giá</span><select data-name="tier">${tierOpts}</select></label>
+                   <label class="field"><span>Số lượng</span><input data-name="qty" type="number" min="0" step="any" value="1"/></label>
+                 </div>
+                 <p class="hint">Giá tự lấy theo bảng giá đã chọn; kèm thông số + ảnh sản phẩm.</p>`,
       onSubmit: (v) => {
         const pr = Store.findProduct(v.pick);
         if (!pr) return;
-        editing.items.push({ code: pr.code, name: pr.name, qty: +v.qty || 1, price: pr.price, img: "", kind: "material" });
+        editing.items.push({ code: pr.code, name: pr.name, qty: +v.qty || 1, price: tierPrice(pr, v.tier || tier), img: pr.img || "", kind: "material", prodId: pr.id });
         renderEditor();
       },
+    });
+  }
+
+  /* Đổi mức giá của cả báo giá -> tự cập nhật giá các dòng sản phẩm */
+  function repriceByTier() {
+    const tier = editing.priceTier || "le";
+    editing.items.forEach((it) => {
+      if (!it.prodId) return;
+      const pr = Store.findProduct(it.prodId);
+      if (pr) it.price = tierPrice(pr, tier);
     });
   }
 

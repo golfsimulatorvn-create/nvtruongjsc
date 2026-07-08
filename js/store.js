@@ -72,9 +72,14 @@ const Store = (function () {
     // Seed kho sản phẩm (bảng giá bán) lần đầu
     if (!state.products) state.products = [];
     if (!state.products.length && typeof PRODUCTS !== "undefined") {
-      state.products = PRODUCTS.map((x) => ({ id: uid("sp-"), code: x.code, name: x.name, price: x.price || 0, group: x.group || "", unit: x.unit || "bộ" }));
+      state.products = PRODUCTS.map((x) => ({ id: uid("sp-"), code: x.code, name: x.name, group: x.group || "", unit: x.unit || "bộ", img: "",
+        prices: { nsx: x.price || 0, dl1: 0, dl2: 0, le: 0 } }));
     }
-    state.products.forEach((x) => { if (!x.id) x.id = uid("sp-"); });
+    state.products.forEach((x) => {
+      if (!x.id) x.id = uid("sp-");
+      if (!x.prices) x.prices = { nsx: x.price || 0, dl1: 0, dl2: 0, le: 0 }; // migrate giá đơn -> nhiều mức
+      if (x.img === undefined) x.img = "";
+    });
 
     delete state.cells;
     delete state.materials;

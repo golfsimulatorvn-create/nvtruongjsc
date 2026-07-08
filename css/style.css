@@ -399,3 +399,9 @@ table.q-items { width: 100%; }
 
 /* ---- Kho sản phẩm ---- */
 .pr-spec { max-width: 520px; font-size: 12.5px; color: #334155; white-space: normal; line-height: 1.45; }
+
+/* ---- Ảnh sản phẩm trong kho ---- */
+.pr-imgcell { text-align: center; position: relative; width: 84px; }
+.pr-thumb { max-width: 70px; max-height: 54px; object-fit: contain; border-radius: 4px; }
+/* Điều khoản báo giá in xuống dòng đúng */
+.q-note-print { white-space: pre-line; }

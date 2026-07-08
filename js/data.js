@@ -26,6 +26,15 @@ function categoryOf(code) {
 }
 const categoryLabel = (key) => (CATEGORIES.find((c) => c.key === key) || { label: key }).label;
 
+/* ---- Các mức giá bán sản phẩm ---- */
+const PRICE_TIERS = [
+  { key: "nsx", label: "Giá NSX" },
+  { key: "dl1", label: "Đại lý cấp 1" },
+  { key: "dl2", label: "Đại lý cấp 2" },
+  { key: "le", label: "Giá lẻ" },
+];
+const tierLabel = (key) => (PRICE_TIERS.find((t) => t.key === key) || { label: key }).label;
+
 /* ---- Bảng giá đầu vào mặc định ----
  * Trường chung: code · name([Thông số]) · mfrCode · brand · price · leadTime · minStock · unit
  * Riêng CELL: v(điện áp) · ah(dung lượng) · chem(hóa học)
