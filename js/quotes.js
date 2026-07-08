@@ -208,9 +208,10 @@ const Quotes = (function () {
         </table>
       </div>
       <div class="no-print" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
-        <button class="btn btn-sm" id="qe-add-item">+ Thêm dòng</button>
+        <button class="btn btn-sm" id="qe-add-from-product">+ Từ kho sản phẩm</button>
+        <button class="btn btn-sm btn-ghost" id="qe-add-item">+ Thêm dòng</button>
         <button class="btn btn-sm btn-ghost" id="qe-add-group">+ Thêm nhóm</button>
-        <button class="btn btn-sm btn-ghost" id="qe-add-from-pl">+ Từ bảng giá</button>
+        <button class="btn btn-sm btn-ghost" id="qe-add-from-pl">+ Từ bảng giá (vật tư)</button>
       </div>
 
       <div class="q-summary">
@@ -279,6 +280,29 @@ const Quotes = (function () {
     if (addGroup) addGroup.onclick = () => { editing.items.push({ name: "NHÓM SẢN PHẨM", kind: "group" }); renderEditor(); };
     const addPl = $("qe-add-from-pl");
     if (addPl) addPl.onclick = pickFromPriceList;
+    const addProd = $("qe-add-from-product");
+    if (addProd) addProd.onclick = pickFromProducts;
+  }
+
+  /* Thêm dòng từ kho sản phẩm (giá bán) */
+  function pickFromProducts() {
+    if (!S.products.length) return toast("Kho sản phẩm trống — thêm ở tab Sản phẩm", "err");
+    const opts = S.products.slice()
+      .sort((a, b) => ((a.group || "") + a.code).localeCompare((b.group || "") + b.code))
+      .map((pr) => `<option value="${pr.id}">[${esc(pr.group || "Khác")}] ${esc(pr.code)} · ${fmt(pr.price)}đ</option>`)
+      .join("");
+    modal({
+      title: "Chọn từ kho sản phẩm",
+      bodyHtml: `<label class="field"><span>Sản phẩm</span><select data-name="pick">${opts}</select></label>
+                 <label class="field"><span>Số lượng</span><input data-name="qty" type="number" min="0" step="any" value="1"/></label>
+                 <p class="hint">Giá bán tự lấy từ kho sản phẩm; có thể sửa lại trong bảng báo giá.</p>`,
+      onSubmit: (v) => {
+        const pr = Store.findProduct(v.pick);
+        if (!pr) return;
+        editing.items.push({ code: pr.code, name: pr.name, qty: +v.qty || 1, price: pr.price, img: "", kind: "material" });
+        renderEditor();
+      },
+    });
   }
 
   /* Cập nhật thành tiền từng dòng + tổng, không render lại toàn bộ (giữ con trỏ) */

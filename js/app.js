@@ -9,6 +9,7 @@ const App = (function () {
   const RENDER = {
     estimator: () => Estimator.render(),
     pricelist: () => PriceList.render(),
+    products: () => Products.render(),
     customers: () => Customers.render(),
     quotes: () => Quotes.render(),
     settings: () => {},
@@ -79,6 +80,7 @@ const App = (function () {
     UI.initModal();
     Estimator.init();
     PriceList.init();
+    Products.init();
     Customers.init();
     Quotes.init();
     bindSettings();

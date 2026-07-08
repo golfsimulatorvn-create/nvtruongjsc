@@ -396,3 +396,6 @@ table.q-items { width: 100%; }
 .cfg-cell small.muted { color: var(--muted); }
 .cfg-cell .btn-icon { background: #f1f5f9; color: var(--primary-dark); }
 .cfg-cell .btn-icon:hover { background: #e2e8f0; }
+
+/* ---- Kho sản phẩm ---- */
+.pr-spec { max-width: 520px; font-size: 12.5px; color: #334155; white-space: normal; line-height: 1.45; }

@@ -20,6 +20,7 @@ const Store = (function () {
     },
     priceHistory: [], // {ts,kind,name,field,old,new}
     items: [],        // bảng giá đầu vào (xem data.js để biết schema)
+    products: [],     // kho sản phẩm (bảng giá bán): {id,code,name,price,group,unit}
     templates: [],    // mẫu pack chuẩn: {id,name,cellCode,bmsCode,caseCode,s,p}
     boms: [],         // BOM đã lưu: {id,name,snapshot(estimator),savedAt}
     customers: [],    // {id,name,company,phone,email,address,taxCode,note,createdAt}
@@ -67,6 +68,13 @@ const Store = (function () {
     if (!state.templates || !state.templates.length) state.templates = TEMPLATES.map((t) => ({ ...t }));
     state.templates.forEach((t) => { if (!t.id) t.id = uid("tpl-"); });
     if (!state.boms) state.boms = [];
+
+    // Seed kho sản phẩm (bảng giá bán) lần đầu
+    if (!state.products) state.products = [];
+    if (!state.products.length && typeof PRODUCTS !== "undefined") {
+      state.products = PRODUCTS.map((x) => ({ id: uid("sp-"), code: x.code, name: x.name, price: x.price || 0, group: x.group || "", unit: x.unit || "bộ" }));
+    }
+    state.products.forEach((x) => { if (!x.id) x.id = uid("sp-"); });
 
     delete state.cells;
     delete state.materials;
@@ -136,6 +144,7 @@ const Store = (function () {
   const findItemByCode = (code) => state.items.find((x) => String(x.code).toLowerCase() === String(code || "").toLowerCase());
   const itemsByCat = (cat) => state.items.filter((x) => x.category === cat);
   const cellItems = () => itemsByCat("CELL");
+  const findProduct = (id) => state.products.find((x) => x.id === id);
   // vật tư phụ có định mức BOM (tự tính trong dự toán); BMS & Vỏ chọn riêng qua dropdown
   const autoMaterials = () =>
     state.items.filter((x) => (x.category === "PHU" || x.category === "PCB") && ((x.qtyFixed || 0) || (x.qtyPerCell || 0) || (x.qtyPerS || 0)));
@@ -147,7 +156,7 @@ const Store = (function () {
   return {
     state, load, save, onChange, uid, clone, logPrice,
     nextQuoteCode, findCustomer, findQuote,
-    findItem, findItemByCode, itemsByCat, cellItems, autoMaterials,
+    findItem, findItemByCode, itemsByCat, cellItems, autoMaterials, findProduct,
     exportJSON, importJSON, resetAll,
   };
 })();

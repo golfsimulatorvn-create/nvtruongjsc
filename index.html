@@ -17,6 +17,7 @@
     <nav class="tabs" id="tabs">
       <button class="tab is-active" data-view="estimator">Dự toán</button>
       <button class="tab" data-view="pricelist">Bảng giá</button>
+      <button class="tab" data-view="products">Sản phẩm</button>
       <button class="tab" data-view="customers">Khách hàng</button>
       <button class="tab" data-view="quotes">Báo giá</button>
       <button class="tab" data-view="settings">Cấu hình</button>
@@ -146,6 +147,38 @@
     </div>
   </section>
 
+  <!-- ================= SẢN PHẨM (KHO / BẢNG GIÁ BÁN) ================= -->
+  <section class="view" id="view-products">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Nhập / Xuất Excel kho sản phẩm</h2>
+        <div class="head-tools">
+          <label class="btn btn-sm" for="pr-import-file">⬆️ Nhập từ Excel</label>
+          <input id="pr-import-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn btn-sm btn-ghost" id="pr-export-excel" type="button">⬇️ Xuất Excel</button>
+        </div>
+      </div>
+      <p class="hint">Kho sản phẩm = <b>bảng giá bán</b> của công ty. Cột: <b>Mã sản phẩm · Nhóm · Thông số kỹ thuật · ĐVT · Giá bán</b>. Nhập/xuất khớp theo <b>Mã sản phẩm</b>. Khi lập báo giá, bấm <b>“+ Từ kho sản phẩm”</b> để lấy trực tiếp.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Kho sản phẩm (bảng giá bán)</h2>
+        <div class="head-tools">
+          <input id="pr-search" class="search" type="search" placeholder="🔍 Tìm mã / thông số / nhóm..." />
+          <button class="btn btn-sm" id="pr-add" type="button">+ Thêm sản phẩm</button>
+        </div>
+      </div>
+      <div class="cat-filter" id="pr-group-filter"></div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-products"><thead><tr>
+          <th>Nhóm</th><th>Mã sản phẩm</th><th>Thông số kỹ thuật</th><th class="col-unit">ĐVT</th>
+          <th class="col-num">Giá bán (đ)</th><th class="col-act"></th>
+        </tr></thead><tbody id="products-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= KHÁCH HÀNG ================= -->
   <section class="view" id="view-customers">
     <div class="panel">
@@ -258,10 +291,12 @@
 
 <script src="js/vendor/xlsx.full.min.js"></script>
 <script src="js/data.js"></script>
+<script src="js/products-data.js"></script>
 <script src="js/store.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/estimator.js"></script>
 <script src="js/pricelist.js"></script>
+<script src="js/products.js"></script>
 <script src="js/customers.js"></script>
 <script src="js/quotes.js"></script>
 <script src="js/app.js"></script>
