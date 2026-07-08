@@ -9,13 +9,15 @@ const Store = (function () {
 
   const state = {
     company: {
-      name: "CÔNG TY CỦA BẠN",
+      name: "GOLF SIMULATOR VN",
       address: "",
       phone: "",
-      email: "",
+      email: "golfsimulator.vn@gmail.com",
       taxCode: "",
       bank: "",
+      logo: "", // data URL ảnh logo
     },
+    priceHistory: [], // {ts,kind,name,field,old,new}
     cells: [],      // {id,name,chem,v,ah,price}
     materials: [],  // {key,name,unit,price,qtyFixed,qtyPerCell,qtyPerS}
     customers: [],  // {id,name,company,phone,email,address,taxCode,note,createdAt}
@@ -73,6 +75,17 @@ const Store = (function () {
     return "BG-" + y + "-" + String(state.counters[y]).padStart(3, "0");
   }
 
+  /* ---- Ghi lịch sử điều chỉnh giá ---- */
+  function logPrice(kind, name, field, oldVal, newVal) {
+    if (+oldVal === +newVal) return;
+    if (!state.priceHistory) state.priceHistory = [];
+    state.priceHistory.unshift({
+      ts: Date.now(), kind, name, field,
+      old: +oldVal || 0, new: +newVal || 0,
+    });
+    if (state.priceHistory.length > 300) state.priceHistory.length = 300;
+  }
+
   /* ---- Helper tra cứu ---- */
   const findCustomer = (id) => state.customers.find((c) => c.id === id);
   const findQuote = (id) => state.quotes.find((q) => q.id === id);
@@ -94,7 +107,7 @@ const Store = (function () {
   }
 
   return {
-    state, load, save, onChange, uid, clone,
+    state, load, save, onChange, uid, clone, logPrice,
     nextQuoteCode, findCustomer, findQuote, findCell,
     exportJSON, importJSON, resetAll,
   };

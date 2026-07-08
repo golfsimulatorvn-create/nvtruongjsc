@@ -135,6 +135,7 @@ const Quotes = (function () {
     $("quote-doc").innerHTML = `
       <div class="q-head">
         <div class="q-company">
+          ${co.logo ? `<img class="q-logo" src="${co.logo}" alt="logo"/>` : ""}
           <div class="q-co-name">${esc(co.name)}</div>
           ${co.address ? `<div>${esc(co.address)}</div>` : ""}
           <div>${[co.phone && "ĐT: " + esc(co.phone), co.email && "Email: " + esc(co.email)].filter(Boolean).join(" · ")}</div>
@@ -276,11 +277,44 @@ const Quotes = (function () {
     Store.save(); render();
   }
 
+  /* ---------- Xuất CSV (mở được bằng Excel) ---------- */
+  function exportCSV() {
+    const q = editing;
+    if (!q) return;
+    const cust = Store.findCustomer(q.customerId);
+    const t = totalOf(q);
+    const co = S.company;
+    const esc = (s) => `"${String(s == null ? "" : s).replace(/"/g, '""')}"`;
+    const rows = [];
+    rows.push([co.name]);
+    rows.push(["BÁO GIÁ", q.code || "(chưa lưu)"]);
+    rows.push(["Khách hàng", cust ? cust.name + (cust.company ? " - " + cust.company : "") : ""]);
+    rows.push(["Ngày", dmy(q.date), "Hiệu lực (ngày)", q.validDays]);
+    rows.push([]);
+    rows.push(["#", "Hàng hóa/Dịch vụ", "ĐVT", "Số lượng", "Đơn giá", "Thành tiền"]);
+    q.items.forEach((it, i) => rows.push([i + 1, it.name, it.unit, it.qty, it.price, it.qty * it.price]));
+    rows.push([]);
+    rows.push(["", "", "", "", "Cộng tiền hàng", t.sub]);
+    if (q.discountPct) rows.push(["", "", "", "", `Chiết khấu ${q.discountPct}%`, -t.discount]);
+    rows.push(["", "", "", "", `VAT ${q.vatPct}%`, t.vat]);
+    rows.push(["", "", "", "", "TỔNG CỘNG", t.grand]);
+
+    const csv = rows.map((r) => r.map(esc).join(",")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (q.code || "bao-gia") + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("Đã xuất CSV (mở bằng Excel)");
+  }
+
   function init() {
     $("quote-new").onclick = newBlank;
     $("quote-search").oninput = (e) => { filter = e.target.value; render(); };
     $("qe-back").onclick = () => { showList(); render(); };
     $("qe-save").onclick = saveEditing;
+    $("qe-csv").onclick = exportCSV;
     $("qe-print").onclick = () => window.print();
   }
 

@@ -30,6 +30,23 @@ const App = (function () {
       $(id).oninput = () => { S.company[key] = $(id).value; Store.save(); };
     });
 
+    // Logo công ty
+    function renderLogo() {
+      const box = $("co-logo-preview");
+      if (S.company.logo) box.innerHTML = `<img src="${S.company.logo}" alt="logo"/>`;
+      else box.textContent = "Chưa có logo";
+    }
+    renderLogo();
+    $("co-logo-file").onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 400 * 1024) return toast("Logo nên < 400KB", "err");
+      const reader = new FileReader();
+      reader.onload = () => { S.company.logo = reader.result; Store.save(); renderLogo(); toast("Đã cập nhật logo"); };
+      reader.readAsDataURL(file);
+    };
+    $("co-logo-clear").onclick = () => { S.company.logo = ""; Store.save(); renderLogo(); };
+
     $("data-export").onclick = () => {
       const blob = new Blob([Store.exportJSON()], { type: "application/json" });
       const a = document.createElement("a");

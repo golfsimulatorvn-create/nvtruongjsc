@@ -9,6 +9,34 @@ const PriceList = (function () {
   function render() {
     renderCells();
     renderMats();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const body = $("history-body");
+    if (!body) return;
+    const list = S.priceHistory || [];
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="5" class="empty">Chưa có thay đổi giá nào được ghi nhận.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list
+      .slice(0, 100)
+      .map((h) => {
+        const d = new Date(h.ts);
+        const when = d.toLocaleDateString("vi-VN") + " " + d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+        const up = h.new > h.old;
+        const diff = h.new - h.old;
+        const pct = h.old ? ((diff / h.old) * 100).toFixed(1) : "—";
+        return `<tr>
+          <td>${when}</td>
+          <td><span class="tag tag-${h.kind === "Cell" ? "blue" : "gray"}">${esc(h.kind)}</span> ${esc(h.name)}</td>
+          <td class="col-num">${fmt(h.old)} đ</td>
+          <td class="col-num">${fmt(h.new)} đ</td>
+          <td class="col-num" style="color:${up ? "#b91c1c" : "#15803d"}">${up ? "▲" : "▼"} ${fmt(Math.abs(diff))} đ (${pct}%)</td>
+        </tr>`;
+      })
+      .join("");
   }
 
   function renderCells() {
@@ -32,6 +60,10 @@ const PriceList = (function () {
       el.oninput = () => {
         const c = Store.findCell(el.getAttribute("data-id"));
         if (c) { c.price = parseFloat(el.value) || 0; Store.save(); }
+      };
+      el.onchange = () => {
+        const c = Store.findCell(el.getAttribute("data-id"));
+        if (c) { Store.logPrice("Cell", c.name, "Đơn giá", el.defaultValue, el.value); Store.save(); renderHistory(); }
       };
     });
     body.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => editCell(b.getAttribute("data-edit"))));
@@ -57,6 +89,11 @@ const PriceList = (function () {
       el.oninput = () => {
         const m = S.materials[parseInt(el.getAttribute("data-mi"), 10)];
         if (m) { m[el.getAttribute("data-f")] = parseFloat(el.value) || 0; Store.save(); }
+      };
+      el.onchange = () => {
+        if (el.getAttribute("data-f") !== "price") return;
+        const m = S.materials[parseInt(el.getAttribute("data-mi"), 10)];
+        if (m) { Store.logPrice("Vật tư", m.name, "Đơn giá", el.defaultValue, el.value); Store.save(); renderHistory(); }
       };
     });
     body.querySelectorAll("[data-delmat]").forEach((b) => (b.onclick = () => delMat(parseInt(b.getAttribute("data-delmat"), 10))));
@@ -140,6 +177,10 @@ const PriceList = (function () {
   function init() {
     $("pl-add-cell").onclick = addCell;
     $("pl-add-mat").onclick = addMat;
+    $("pl-clear-history").onclick = () => {
+      if (!(S.priceHistory || []).length) return;
+      if (confirmBox("Xóa toàn bộ lịch sử điều chỉnh giá?")) { S.priceHistory = []; Store.save(); renderHistory(); }
+    };
   }
 
   return { init, render };

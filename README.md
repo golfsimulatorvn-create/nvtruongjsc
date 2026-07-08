@@ -22,7 +22,12 @@ Website tĩnh **quản lý bảng giá vật tư · khách hàng · báo giá** 
 **Báo giá cho khách hàng**
 - Tạo báo giá chuyên nghiệp có **số tự tăng** `BG-YYYY-NNN`, ngày & hiệu lực, **chiết khấu**, **VAT**, ghi chú, ô ký tên.
 - Thêm dòng thủ công hoặc **lấy trực tiếp từ bảng giá**; theo dõi **trạng thái** (Nháp / Đã gửi / Đã chốt / Từ chối).
-- Hiển thị thông tin công ty (từ tab **Cấu hình**), **in / xuất PDF** đúng chuẩn văn bản báo giá.
+- Hiển thị **logo + thông tin công ty** (từ tab **Cấu hình**), **in / xuất PDF** và **xuất Excel/CSV**.
+
+**Tiện ích khác**
+- **Lịch sử điều chỉnh giá**: tự ghi lại mỗi lần đổi đơn giá cell/vật tư (giá cũ → giá mới, % thay đổi).
+- **Logo công ty**: tải lên trong tab Cấu hình, hiển thị trên đầu báo giá.
+- **Sao lưu**: xuất/nhập toàn bộ dữ liệu ra file JSON.
 
 ## 🚀 Triển khai GitHub Pages
 
