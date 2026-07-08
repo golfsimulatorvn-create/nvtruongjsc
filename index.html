@@ -1,0 +1,150 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dự toán & BOM Pin | Battery Cost Estimator</title>
+<meta name="description" content="Công cụ lập giá dự toán và BOM chuẩn cho các loại Pin (LiFePO4, Li-ion) từ giá vật tư đầu vào." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔋</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+
+<header class="app-header no-print">
+  <div class="wrap header-inner">
+    <div class="brand">
+      <span class="brand-logo">🔋</span>
+      <div>
+        <h1>Dự toán &amp; BOM Pin</h1>
+        <p class="tagline">Lập giá dự toán từ giá vật tư đầu vào &amp; BOM chuẩn các loại Pin</p>
+      </div>
+    </div>
+    <nav class="header-actions">
+      <button id="btn-print" class="btn btn-ghost" type="button">🖨️ In / PDF</button>
+      <button id="btn-reset" class="btn btn-ghost" type="button">↺ Đặt lại giá</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap layout">
+  <!-- Cột cấu hình -->
+  <section class="panel no-print">
+    <h2 class="panel-title">1. Cấu hình pack Pin</h2>
+
+    <label class="field">
+      <span>Mẫu pack chuẩn</span>
+      <select id="template"></select>
+    </label>
+
+    <div class="grid-2">
+      <label class="field">
+        <span>Loại cell</span>
+        <select id="cell"></select>
+      </label>
+      <label class="field">
+        <span>Đơn giá cell (đ/cell)</span>
+        <input id="cell-price" type="number" min="0" step="100" />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label class="field">
+        <span>Số cell nối tiếp (S)</span>
+        <input id="series" type="number" min="1" step="1" />
+      </label>
+      <label class="field">
+        <span>Số cell song song (P)</span>
+        <input id="parallel" type="number" min="1" step="1" />
+      </label>
+    </div>
+
+    <div class="spec-card" id="spec-card"></div>
+
+    <h2 class="panel-title">2. Hệ số chi phí</h2>
+    <div class="grid-2">
+      <label class="field">
+        <span>Hao hụt vật tư (%)</span>
+        <input id="waste" type="number" min="0" step="0.5" value="3" />
+      </label>
+      <label class="field">
+        <span>Nhân công (đ/cell)</span>
+        <input id="labor-cell" type="number" min="0" step="500" value="3000" />
+      </label>
+    </div>
+    <div class="grid-2">
+      <label class="field">
+        <span>Nhân công cố định (đ/pack)</span>
+        <input id="labor-fixed" type="number" min="0" step="1000" value="50000" />
+      </label>
+      <label class="field">
+        <span>Chi phí quản lý (%)</span>
+        <input id="overhead" type="number" min="0" step="1" value="10" />
+      </label>
+    </div>
+    <div class="grid-2">
+      <label class="field">
+        <span>Lợi nhuận mong muốn (%)</span>
+        <input id="margin" type="number" min="0" step="1" value="15" />
+      </label>
+      <label class="field">
+        <span>Thuế VAT (%)</span>
+        <input id="vat" type="number" min="0" step="1" value="8" />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label class="field">
+        <span>Số lượng pack</span>
+        <input id="qty" type="number" min="1" step="1" value="1" />
+      </label>
+      <div class="field field-note">
+        <span>&nbsp;</span>
+        <p class="hint">Giá vật tư được lưu tự động trong trình duyệt.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cột BOM + kết quả -->
+  <section class="panel panel-wide">
+    <div class="print-header only-print">
+      <h1>BẢNG DỰ TOÁN CHI PHÍ PIN</h1>
+      <p id="print-meta"></p>
+    </div>
+
+    <div class="panel-head">
+      <h2 class="panel-title" id="bom-title">3. Định mức vật tư (BOM)</h2>
+      <button id="btn-add" class="btn btn-sm no-print" type="button">+ Thêm dòng vật tư</button>
+    </div>
+
+    <div class="table-scroll">
+      <table class="bom" id="bom-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Vật tư / Hạng mục</th>
+            <th class="col-unit">ĐVT</th>
+            <th class="col-num">Số lượng</th>
+            <th class="col-num">Đơn giá (đ)</th>
+            <th class="col-num">Thành tiền (đ)</th>
+            <th class="col-act no-print"></th>
+          </tr>
+        </thead>
+        <tbody id="bom-body"></tbody>
+        <tfoot>
+          <tr class="row-total">
+            <td colspan="5">Tổng chi phí vật tư</td>
+            <td class="col-num" id="sum-material">0</td>
+            <td class="no-print"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <h2 class="panel-title">4. Bảng dự toán giá thành</h2>
+    <div class="summary" id="summary"></div>
+  </section>
+</main>
+
+<footer class="app-footer no-print">
+  <div class="wrap">
+    <p>Công cụ dự toán &amp; BOM Pin · Dữ liệu chỉ mang tính tham khảo, cần đối chiếu báo giá nhà cung cấp thực tế.</p>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
