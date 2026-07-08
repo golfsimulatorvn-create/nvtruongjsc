@@ -91,6 +91,18 @@
   <section class="view" id="view-pricelist">
     <div class="panel">
       <div class="panel-head">
+        <h2 class="panel-title">Nhập / Xuất bảng giá Excel</h2>
+        <div class="head-tools">
+          <label class="btn btn-sm" for="pl-import-file">⬆️ Nhập từ Excel</label>
+          <input id="pl-import-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn btn-sm btn-ghost" id="pl-export-excel" type="button">⬇️ Xuất Excel (mẫu)</button>
+        </div>
+      </div>
+      <p class="hint">Tải <b>“Xuất Excel (mẫu)”</b> để lấy file có sẵn dữ liệu hiện tại và đúng định dạng cột (2 sheet: <b>Cell</b> và <b>VatTu</b>). Chỉnh giá trong Excel rồi <b>“Nhập từ Excel”</b> — hệ thống khớp theo <b>tên</b>: có sẵn thì cập nhật giá, chưa có thì thêm mới. Hỗ trợ .xlsx / .xls / .csv.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
         <h2 class="panel-title">Bảng giá Cell</h2>
         <button class="btn btn-sm" id="pl-add-cell" type="button">+ Thêm cell</button>
       </div>
@@ -236,6 +248,7 @@
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="js/vendor/xlsx.full.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/store.js"></script>
 <script src="js/ui.js"></script>

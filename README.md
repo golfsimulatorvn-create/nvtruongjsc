@@ -15,6 +15,7 @@ Website tĩnh **quản lý bảng giá vật tư · khách hàng · báo giá** 
 
 **Quản lý bảng giá**
 - **Thư viện cell** (LiFePO4 32700/32650/26650, Li-ion 21700/18650) và **vật tư phụ** — thêm/sửa/xóa, chỉnh giá & định mức, dùng chung cho dự toán và báo giá.
+- **Nhập / xuất Excel**: xuất bảng giá ra `.xlsx` (2 sheet Cell & VatTu) làm mẫu, chỉnh trong Excel rồi nhập lại — khớp theo tên (có sẵn thì cập nhật giá, chưa có thì thêm mới). Hỗ trợ `.xlsx / .xls / .csv`, đọc offline bằng thư viện SheetJS đóng gói sẵn.
 
 **Quản lý khách hàng**
 - Danh bạ khách hàng (người liên hệ, công ty, SĐT, email, địa chỉ, MST), tìm kiếm nhanh, đếm số báo giá theo từng khách.

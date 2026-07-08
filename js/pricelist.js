@@ -174,12 +174,159 @@ const PriceList = (function () {
     Store.save(); render(); Estimator.render();
   }
 
+  /* ================= NHẬP / XUẤT EXCEL ================= */
+  const noAccent = (s) =>
+    String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u0111/g, "d").replace(/[^a-z0-9]/g, "");
+
+  function toNum(v) {
+    if (typeof v === "number") return v;
+    if (v == null) return 0;
+    let s = String(v).trim().replace(/\s/g, "");
+    if (!s) return 0;
+    if (s.includes(".") && s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+    else s = s.replace(",", ".");
+    return parseFloat(s) || 0;
+  }
+
+  // lấy giá trị 1 dòng theo danh sách từ khóa cột (không dấu)
+  function pick(rowNorm, keys) {
+    for (const k of keys) if (rowNorm[k] !== undefined && rowNorm[k] !== "") return rowNorm[k];
+    return "";
+  }
+  function normRow(row) {
+    const o = {};
+    Object.keys(row).forEach((k) => (o[noAccent(k)] = row[k]));
+    return o;
+  }
+
+  function exportExcel() {
+    if (!window.XLSX) return toast("Thư viện Excel chưa tải xong", "err");
+    const cellAoa = [["Tên cell", "Hóa học", "Điện áp (V)", "Dung lượng (Ah)", "Đơn giá"]];
+    S.cells.forEach((c) => cellAoa.push([c.name, c.chem, c.v, c.ah, c.price]));
+    const matAoa = [["Tên vật tư", "ĐVT", "Đơn giá", "SL cố định/pack", "SL theo cell", "SL theo S"]];
+    S.materials.forEach((m) => matAoa.push([m.name, m.unit, m.price, m.qtyFixed || 0, m.qtyPerCell || 0, m.qtyPerS || 0]));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cellAoa), "Cell");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(matAoa), "VatTu");
+    XLSX.writeFile(wb, "bang-gia-pin.xlsx");
+    toast("Đã xuất bảng giá ra Excel");
+  }
+
+  function detectType(sheetName, rows) {
+    const n = noAccent(sheetName);
+    if (n.includes("cell")) return "cell";
+    if (n.includes("vattu") || n.includes("material") || n.includes("phukien")) return "mat";
+    const r = rows[0] ? normRow(rows[0]) : {};
+    if (r.dungluongah !== undefined || r.dienapv !== undefined || r.dungluong !== undefined) return "cell";
+    if (r.dvt !== undefined || r.slcodinhpack !== undefined || r.sltheocell !== undefined) return "mat";
+    return null;
+  }
+
+  function parseWorkbook(wb) {
+    const plan = { cellUpd: [], cellAdd: [], matUpd: [], matAdd: [] };
+    wb.SheetNames.forEach((name) => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "" });
+      if (!rows.length) return;
+      const type = detectType(name, rows);
+      if (!type) return;
+      rows.forEach((raw) => {
+        const r = normRow(raw);
+        if (type === "cell") {
+          const nm = String(pick(r, ["tencell", "ten", "cell", "name"])).trim();
+          if (!nm) return;
+          const price = toNum(pick(r, ["dongia", "gia", "price"]));
+          const chem = String(pick(r, ["hoahoc", "chem", "chemistry"])).trim();
+          const v = toNum(pick(r, ["dienapv", "dienap", "v", "voltage"]));
+          const ah = toNum(pick(r, ["dungluongah", "dungluong", "ah", "capacity"]));
+          const ex = S.cells.find((c) => noAccent(c.name) === noAccent(nm));
+          if (ex) plan.cellUpd.push({ ex, nm, price, chem, v, ah });
+          else plan.cellAdd.push({ nm, price, chem: chem || "LiFePO4", v: v || 3.2, ah });
+        } else {
+          const nm = String(pick(r, ["tenvattu", "ten", "vattu", "name"])).trim();
+          if (!nm) return;
+          const price = toNum(pick(r, ["dongia", "gia", "price"]));
+          const unit = String(pick(r, ["dvt", "donvitinh", "unit"])).trim();
+          const qf = toNum(pick(r, ["slcodinhpack", "codinh", "qtyfixed", "slcodinh"]));
+          const qc = toNum(pick(r, ["sltheocell", "theocell", "qtypercell"]));
+          const qs = toNum(pick(r, ["sltheos", "theos", "qtypers"]));
+          const hasQ = ["slcodinhpack", "sltheocell", "sltheos", "codinh", "theocell", "theos"].some((k) => r[k] !== undefined && r[k] !== "");
+          const ex = S.materials.find((m) => noAccent(m.name) === noAccent(nm));
+          if (ex) plan.matUpd.push({ ex, nm, price, unit, qf, qc, qs, hasQ });
+          else plan.matAdd.push({ nm, price, unit: unit || "cái", qf, qc, qs });
+        }
+      });
+    });
+    return plan;
+  }
+
+  function applyPlan(plan) {
+    plan.cellUpd.forEach((p) => {
+      if (p.price) { Store.logPrice("Cell", p.ex.name, "Đơn giá", p.ex.price, p.price); p.ex.price = p.price; }
+      if (p.chem) p.ex.chem = p.chem;
+      if (p.v) p.ex.v = p.v;
+      if (p.ah) p.ex.ah = p.ah;
+    });
+    plan.cellAdd.forEach((p) =>
+      S.cells.push({ id: Store.uid("cell-"), name: p.nm, chem: p.chem, v: p.v, ah: p.ah, price: p.price })
+    );
+    plan.matUpd.forEach((p) => {
+      if (p.price) { Store.logPrice("Vật tư", p.ex.name, "Đơn giá", p.ex.price, p.price); p.ex.price = p.price; }
+      if (p.unit) p.ex.unit = p.unit;
+      if (p.hasQ) { p.ex.qtyFixed = p.qf; p.ex.qtyPerCell = p.qc; p.ex.qtyPerS = p.qs; }
+    });
+    plan.matAdd.forEach((p) =>
+      S.materials.push({ key: Store.uid("m-"), name: p.nm, unit: p.unit, price: p.price, qtyFixed: p.qf, qtyPerCell: p.qc, qtyPerS: p.qs })
+    );
+    Store.save();
+    render();
+    if (window.Estimator) Estimator.init();
+  }
+
+  function importExcel(file) {
+    if (!window.XLSX) return toast("Thư viện Excel chưa tải xong, thử lại", "err");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      let wb;
+      try { wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" }); }
+      catch (err) { return toast("Không đọc được file. Kiểm tra định dạng .xlsx/.csv", "err"); }
+      const plan = parseWorkbook(wb);
+      const total = plan.cellUpd.length + plan.cellAdd.length + plan.matUpd.length + plan.matAdd.length;
+      if (!total) return toast("Không tìm thấy dữ liệu hợp lệ (sheet Cell / VatTu)", "err");
+
+      const sample = [...plan.cellUpd.slice(0, 3).map((p) => "• Cập nhật cell: " + p.nm),
+        ...plan.cellAdd.slice(0, 3).map((p) => "• Thêm cell: " + p.nm),
+        ...plan.matUpd.slice(0, 3).map((p) => "• Cập nhật vật tư: " + p.nm),
+        ...plan.matAdd.slice(0, 3).map((p) => "• Thêm vật tư: " + p.nm)].join("<br>");
+
+      modal({
+        title: "Xác nhận nhập bảng giá",
+        okText: "Áp dụng",
+        bodyHtml: `
+          <div class="import-summary">
+            <div><b>Cell:</b> cập nhật <b>${plan.cellUpd.length}</b>, thêm mới <b>${plan.cellAdd.length}</b></div>
+            <div><b>Vật tư:</b> cập nhật <b>${plan.matUpd.length}</b>, thêm mới <b>${plan.matAdd.length}</b></div>
+          </div>
+          <p class="hint" style="margin-top:10px">${sample}${total > 12 ? "<br>…" : ""}</p>
+          <p class="hint">Thay đổi giá sẽ được ghi vào Lịch sử điều chỉnh giá.</p>`,
+        onSubmit: () => { applyPlan(plan); toast(`Đã nhập: ${total} mục`); },
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
   function init() {
     $("pl-add-cell").onclick = addCell;
     $("pl-add-mat").onclick = addMat;
     $("pl-clear-history").onclick = () => {
       if (!(S.priceHistory || []).length) return;
       if (confirmBox("Xóa toàn bộ lịch sử điều chỉnh giá?")) { S.priceHistory = []; Store.save(); renderHistory(); }
+    };
+    $("pl-export-excel").onclick = exportExcel;
+    $("pl-import-file").onchange = (e) => {
+      const f = e.target.files[0];
+      if (f) importExcel(f);
+      e.target.value = ""; // cho phép chọn lại cùng file
     };
   }
 
