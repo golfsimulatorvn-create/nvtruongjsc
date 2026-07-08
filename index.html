@@ -1,7 +1,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dự toán & BOM Pin | Battery Cost Estimator</title>
-<meta name="description" content="Công cụ lập giá dự toán và BOM chuẩn cho các loại Pin (LiFePO4, Li-ion) từ giá vật tư đầu vào." />
+<title>Dự toán · Bảng giá · Báo giá Pin</title>
+<meta name="description" content="Quản lý bảng giá vật tư, khách hàng và tạo báo giá cho các loại Pin (LiFePO4, Li-ion), kèm dự toán & BOM chuẩn." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔋</text></svg>" />
 <link rel="stylesheet" href="css/style.css" />
 
@@ -10,141 +10,215 @@
     <div class="brand">
       <span class="brand-logo">🔋</span>
       <div>
-        <h1>Dự toán &amp; BOM Pin</h1>
-        <p class="tagline">Lập giá dự toán từ giá vật tư đầu vào &amp; BOM chuẩn các loại Pin</p>
+        <h1>Dự toán &amp; Báo giá Pin</h1>
+        <p class="tagline">Bảng giá vật tư · Khách hàng · Báo giá · BOM chuẩn</p>
       </div>
     </div>
-    <nav class="header-actions">
-      <button id="btn-print" class="btn btn-ghost" type="button">🖨️ In / PDF</button>
-      <button id="btn-reset" class="btn btn-ghost" type="button">↺ Đặt lại giá</button>
+    <nav class="tabs" id="tabs">
+      <button class="tab is-active" data-view="estimator">Dự toán</button>
+      <button class="tab" data-view="pricelist">Bảng giá</button>
+      <button class="tab" data-view="customers">Khách hàng</button>
+      <button class="tab" data-view="quotes">Báo giá</button>
+      <button class="tab" data-view="settings">Cấu hình</button>
     </nav>
   </div>
 </header>
 
-<main class="wrap layout">
-  <!-- Cột cấu hình -->
-  <section class="panel no-print">
-    <h2 class="panel-title">1. Cấu hình pack Pin</h2>
+<main class="wrap">
+  <!-- ================= DỰ TOÁN ================= -->
+  <section class="view is-active" id="view-estimator">
+    <div class="layout">
+      <div class="panel no-print">
+        <h2 class="panel-title">1. Cấu hình pack Pin</h2>
+        <label class="field"><span>Mẫu pack chuẩn</span><select id="template"></select></label>
+        <div class="grid-2">
+          <label class="field"><span>Loại cell</span><select id="cell"></select></label>
+          <label class="field"><span>Đơn giá cell (đ/cell)</span><input id="cell-price" type="number" min="0" step="100" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Số cell nối tiếp (S)</span><input id="series" type="number" min="1" step="1" /></label>
+          <label class="field"><span>Số cell song song (P)</span><input id="parallel" type="number" min="1" step="1" /></label>
+        </div>
+        <div class="spec-card" id="spec-card"></div>
 
-    <label class="field">
-      <span>Mẫu pack chuẩn</span>
-      <select id="template"></select>
-    </label>
+        <h2 class="panel-title">2. Hệ số chi phí</h2>
+        <div class="grid-2">
+          <label class="field"><span>Hao hụt vật tư (%)</span><input id="waste" type="number" min="0" step="0.5" /></label>
+          <label class="field"><span>Nhân công (đ/cell)</span><input id="labor-cell" type="number" min="0" step="500" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Nhân công cố định (đ/pack)</span><input id="labor-fixed" type="number" min="0" step="1000" /></label>
+          <label class="field"><span>Chi phí quản lý (%)</span><input id="overhead" type="number" min="0" step="1" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Lợi nhuận (%)</span><input id="margin" type="number" min="0" step="1" /></label>
+          <label class="field"><span>Thuế VAT (%)</span><input id="vat" type="number" min="0" step="1" /></label>
+        </div>
+        <label class="field"><span>Số lượng pack</span><input id="qty" type="number" min="1" step="1" /></label>
+        <p class="hint">Giá cell/vật tư lấy từ tab <b>Bảng giá</b> và lưu tự động.</p>
+      </div>
 
-    <div class="grid-2">
-      <label class="field">
-        <span>Loại cell</span>
-        <select id="cell"></select>
-      </label>
-      <label class="field">
-        <span>Đơn giá cell (đ/cell)</span>
-        <input id="cell-price" type="number" min="0" step="100" />
-      </label>
-    </div>
+      <div class="panel panel-wide">
+        <div class="panel-head">
+          <h2 class="panel-title" id="bom-title">3. Định mức vật tư (BOM)</h2>
+          <button id="btn-add" class="btn btn-sm no-print" type="button">+ Thêm dòng</button>
+        </div>
+        <div class="table-scroll">
+          <table class="bom" id="bom-table">
+            <thead><tr>
+              <th class="col-idx">#</th><th>Vật tư / Hạng mục</th><th class="col-unit">ĐVT</th>
+              <th class="col-num">SL</th><th class="col-num">Đơn giá</th><th class="col-num">Thành tiền</th>
+              <th class="col-act no-print"></th>
+            </tr></thead>
+            <tbody id="bom-body"></tbody>
+            <tfoot><tr class="row-total">
+              <td colspan="5">Tổng chi phí vật tư</td><td class="col-num" id="sum-material">0</td><td class="no-print"></td>
+            </tr></tfoot>
+          </table>
+        </div>
 
-    <div class="grid-2">
-      <label class="field">
-        <span>Số cell nối tiếp (S)</span>
-        <input id="series" type="number" min="1" step="1" />
-      </label>
-      <label class="field">
-        <span>Số cell song song (P)</span>
-        <input id="parallel" type="number" min="1" step="1" />
-      </label>
-    </div>
-
-    <div class="spec-card" id="spec-card"></div>
-
-    <h2 class="panel-title">2. Hệ số chi phí</h2>
-    <div class="grid-2">
-      <label class="field">
-        <span>Hao hụt vật tư (%)</span>
-        <input id="waste" type="number" min="0" step="0.5" value="3" />
-      </label>
-      <label class="field">
-        <span>Nhân công (đ/cell)</span>
-        <input id="labor-cell" type="number" min="0" step="500" value="3000" />
-      </label>
-    </div>
-    <div class="grid-2">
-      <label class="field">
-        <span>Nhân công cố định (đ/pack)</span>
-        <input id="labor-fixed" type="number" min="0" step="1000" value="50000" />
-      </label>
-      <label class="field">
-        <span>Chi phí quản lý (%)</span>
-        <input id="overhead" type="number" min="0" step="1" value="10" />
-      </label>
-    </div>
-    <div class="grid-2">
-      <label class="field">
-        <span>Lợi nhuận mong muốn (%)</span>
-        <input id="margin" type="number" min="0" step="1" value="15" />
-      </label>
-      <label class="field">
-        <span>Thuế VAT (%)</span>
-        <input id="vat" type="number" min="0" step="1" value="8" />
-      </label>
-    </div>
-
-    <div class="grid-2">
-      <label class="field">
-        <span>Số lượng pack</span>
-        <input id="qty" type="number" min="1" step="1" value="1" />
-      </label>
-      <div class="field field-note">
-        <span>&nbsp;</span>
-        <p class="hint">Giá vật tư được lưu tự động trong trình duyệt.</p>
+        <h2 class="panel-title">4. Bảng dự toán giá thành</h2>
+        <div class="summary" id="summary"></div>
+        <div class="panel-actions no-print">
+          <button id="btn-to-quote" class="btn" type="button">📄 Tạo báo giá từ dự toán này</button>
+          <button id="btn-print-est" class="btn btn-ghost" type="button">🖨️ In dự toán</button>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Cột BOM + kết quả -->
-  <section class="panel panel-wide">
-    <div class="print-header only-print">
-      <h1>BẢNG DỰ TOÁN CHI PHÍ PIN</h1>
-      <p id="print-meta"></p>
+  <!-- ================= BẢNG GIÁ ================= -->
+  <section class="view" id="view-pricelist">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Bảng giá Cell</h2>
+        <button class="btn btn-sm" id="pl-add-cell" type="button">+ Thêm cell</button>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-cells"><thead><tr>
+          <th>Tên cell</th><th>Hóa học</th><th class="col-num">Điện áp (V)</th>
+          <th class="col-num">Dung lượng (Ah)</th><th class="col-num">Đơn giá (đ)</th><th class="col-act"></th>
+        </tr></thead><tbody id="cells-body"></tbody></table>
+      </div>
     </div>
 
-    <div class="panel-head">
-      <h2 class="panel-title" id="bom-title">3. Định mức vật tư (BOM)</h2>
-      <button id="btn-add" class="btn btn-sm no-print" type="button">+ Thêm dòng vật tư</button>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Bảng giá Vật tư phụ</h2>
+        <button class="btn btn-sm" id="pl-add-mat" type="button">+ Thêm vật tư</button>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-mats"><thead><tr>
+          <th>Vật tư</th><th class="col-unit">ĐVT</th><th class="col-num">Đơn giá (đ)</th>
+          <th class="col-num">Cố định/pack</th><th class="col-num">Theo cell</th><th class="col-num">Theo S</th><th class="col-act"></th>
+        </tr></thead><tbody id="mats-body"></tbody></table>
+      </div>
+      <p class="hint">Định mức: <b>Số lượng = Cố định + (Theo cell × tổng cell) + (Theo S × số nối tiếp)</b>. Chỉnh 0 nếu không dùng.</p>
+    </div>
+  </section>
+
+  <!-- ================= KHÁCH HÀNG ================= -->
+  <section class="view" id="view-customers">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Danh sách khách hàng</h2>
+        <div class="head-tools">
+          <input id="cust-search" class="search" type="search" placeholder="🔍 Tìm tên / công ty / SĐT..." />
+          <button class="btn btn-sm" id="cust-add" type="button">+ Thêm khách hàng</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-cust"><thead><tr>
+          <th>Khách hàng</th><th>Công ty</th><th>Điện thoại</th><th>Email</th><th class="col-num">Số báo giá</th><th class="col-act"></th>
+        </tr></thead><tbody id="cust-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BÁO GIÁ ================= -->
+  <section class="view" id="view-quotes">
+    <!-- Danh sách -->
+    <div class="panel" id="quotes-list-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Danh sách báo giá</h2>
+        <div class="head-tools">
+          <input id="quote-search" class="search" type="search" placeholder="🔍 Tìm số / khách hàng..." />
+          <button class="btn btn-sm" id="quote-new" type="button">+ Báo giá mới</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-quotes"><thead><tr>
+          <th>Số báo giá</th><th>Ngày</th><th>Khách hàng</th><th class="col-num">Giá trị (đã VAT)</th><th>Trạng thái</th><th class="col-act"></th>
+        </tr></thead><tbody id="quotes-body"></tbody></table>
+      </div>
     </div>
 
-    <div class="table-scroll">
-      <table class="bom" id="bom-table">
-        <thead>
-          <tr>
-            <th class="col-idx">#</th>
-            <th>Vật tư / Hạng mục</th>
-            <th class="col-unit">ĐVT</th>
-            <th class="col-num">Số lượng</th>
-            <th class="col-num">Đơn giá (đ)</th>
-            <th class="col-num">Thành tiền (đ)</th>
-            <th class="col-act no-print"></th>
-          </tr>
-        </thead>
-        <tbody id="bom-body"></tbody>
-        <tfoot>
-          <tr class="row-total">
-            <td colspan="5">Tổng chi phí vật tư</td>
-            <td class="col-num" id="sum-material">0</td>
-            <td class="no-print"></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+    <!-- Trình soạn báo giá -->
+    <div class="panel" id="quote-editor" hidden>
+      <div class="panel-head no-print">
+        <h2 class="panel-title" id="qe-title">Soạn báo giá</h2>
+        <div class="head-tools">
+          <button class="btn btn-ghost btn-sm" id="qe-back" type="button">← Danh sách</button>
+          <button class="btn btn-ghost btn-sm" id="qe-print" type="button">🖨️ In / PDF</button>
+          <button class="btn btn-sm" id="qe-save" type="button">💾 Lưu báo giá</button>
+        </div>
+      </div>
 
-    <h2 class="panel-title">4. Bảng dự toán giá thành</h2>
-    <div class="summary" id="summary"></div>
+      <!-- Bản in báo giá -->
+      <div id="quote-doc" class="quote-doc"></div>
+    </div>
+  </section>
+
+  <!-- ================= CẤU HÌNH ================= -->
+  <section class="view" id="view-settings">
+    <div class="panel">
+      <h2 class="panel-title">Thông tin công ty (hiển thị trên báo giá)</h2>
+      <div class="grid-2">
+        <label class="field"><span>Tên công ty</span><input id="co-name" /></label>
+        <label class="field"><span>Mã số thuế</span><input id="co-tax" /></label>
+      </div>
+      <label class="field"><span>Địa chỉ</span><input id="co-addr" /></label>
+      <div class="grid-2">
+        <label class="field"><span>Điện thoại</span><input id="co-phone" /></label>
+        <label class="field"><span>Email</span><input id="co-email" /></label>
+      </div>
+      <label class="field"><span>Thông tin chuyển khoản / ngân hàng</span><input id="co-bank" /></label>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">Sao lưu &amp; khôi phục dữ liệu</h2>
+      <p class="hint">Toàn bộ dữ liệu lưu trong trình duyệt này. Nên xuất file định kỳ để sao lưu.</p>
+      <div class="panel-actions">
+        <button class="btn" id="data-export" type="button">⬇️ Xuất dữ liệu (JSON)</button>
+        <label class="btn btn-ghost" for="data-import-file">⬆️ Nhập dữ liệu</label>
+        <input id="data-import-file" type="file" accept="application/json" hidden />
+        <button class="btn btn-ghost" id="data-reset" type="button">🗑️ Xóa toàn bộ &amp; đặt lại</button>
+      </div>
+    </div>
   </section>
 </main>
 
 <footer class="app-footer no-print">
-  <div class="wrap">
-    <p>Công cụ dự toán &amp; BOM Pin · Dữ liệu chỉ mang tính tham khảo, cần đối chiếu báo giá nhà cung cấp thực tế.</p>
-  </div>
+  <div class="wrap"><p>Công cụ dự toán &amp; báo giá Pin · Dữ liệu lưu cục bộ trong trình duyệt · Đối chiếu báo giá NCC thực tế trước khi chốt.</p></div>
 </footer>
 
+<!-- Modal chung -->
+<div class="modal-overlay" id="modal" hidden>
+  <div class="modal">
+    <div class="modal-head"><h3 id="modal-title">Tiêu đề</h3><button class="modal-x" id="modal-close">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modal-cancel" type="button">Hủy</button>
+      <button class="btn" id="modal-ok" type="button">Lưu</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
 <script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/estimator.js"></script>
+<script src="js/pricelist.js"></script>
+<script src="js/customers.js"></script>
+<script src="js/quotes.js"></script>
 <script src="js/app.js"></script>

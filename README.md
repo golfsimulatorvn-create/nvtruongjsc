@@ -1,17 +1,28 @@
-# 🔋 Dự toán & BOM Pin — Battery Cost Estimator
+# 🔋 Dự toán & Báo giá Pin — Battery Estimator & Quotation
 
-Website tĩnh giúp **lập giá dự toán** cho các loại **Pin** (LiFePO4, Li-ion) từ **giá vật tư đầu vào**, kèm **BOM chuẩn** cho từng cấu hình pack. Chạy hoàn toàn trên trình duyệt, không cần backend — triển khai miễn phí bằng **GitHub Pages**.
+Website tĩnh **quản lý bảng giá vật tư · khách hàng · báo giá** và **lập giá dự toán** cho các loại **Pin** (LiFePO4, Li-ion) từ **giá vật tư đầu vào**, kèm **BOM chuẩn** cho từng cấu hình pack. Chạy hoàn toàn trên trình duyệt, không cần backend — triển khai miễn phí bằng **GitHub Pages**. Dữ liệu lưu cục bộ (localStorage) và có thể **xuất/nhập file sao lưu**.
+
+Ứng dụng gồm 5 tab: **Dự toán · Bảng giá · Khách hàng · Báo giá · Cấu hình**.
 
 ## ✨ Tính năng
 
+**Dự toán & BOM**
 - **Mẫu pack chuẩn** dựng sẵn: LiFePO4 12V/24V/48V, Li-ion 36V/48V/60V, hoặc tùy chỉnh S/P tự do.
-- **Thư viện cell**: LiFePO4 32700/32650/26650, Li-ion 21700/18650 (điện áp, dung lượng, đơn giá tham khảo).
 - **BOM tự động scale** theo số cell (kẽm hàn, đế giữ cell, BMS, vỏ hộp, dây, giắc, cầu chì...).
 - **Tính thông số pack**: cấu hình `S×P`, điện áp (V), dung lượng (Ah), năng lượng (kWh).
-- **Bảng dự toán giá thành** đầy đủ: vật tư → hao hụt → nhân công → COGS → quản lý → lợi nhuận → VAT → **giá bán**.
-- **Chỉnh giá vật tư & số lượng** trực tiếp trên bảng, **thêm dòng vật tư** tùy ý.
-- **Lưu tự động** đơn giá trong trình duyệt (localStorage).
-- **In / xuất PDF** bảng dự toán chuyên nghiệp.
+- **Bảng dự toán giá thành**: vật tư → hao hụt → nhân công → COGS → quản lý → lợi nhuận → VAT → **giá bán**.
+- Một cú nhấp **“Tạo báo giá từ dự toán này”**.
+
+**Quản lý bảng giá**
+- **Thư viện cell** (LiFePO4 32700/32650/26650, Li-ion 21700/18650) và **vật tư phụ** — thêm/sửa/xóa, chỉnh giá & định mức, dùng chung cho dự toán và báo giá.
+
+**Quản lý khách hàng**
+- Danh bạ khách hàng (người liên hệ, công ty, SĐT, email, địa chỉ, MST), tìm kiếm nhanh, đếm số báo giá theo từng khách.
+
+**Báo giá cho khách hàng**
+- Tạo báo giá chuyên nghiệp có **số tự tăng** `BG-YYYY-NNN`, ngày & hiệu lực, **chiết khấu**, **VAT**, ghi chú, ô ký tên.
+- Thêm dòng thủ công hoặc **lấy trực tiếp từ bảng giá**; theo dõi **trạng thái** (Nháp / Đã gửi / Đã chốt / Từ chối).
+- Hiển thị thông tin công ty (từ tab **Cấu hình**), **in / xuất PDF** đúng chuẩn văn bản báo giá.
 
 ## 🚀 Triển khai GitHub Pages
 
@@ -34,10 +45,16 @@ python3 -m http.server 8080   # http://localhost:8080
 ## 📁 Cấu trúc
 
 ```
-├── index.html          # Giao diện
-├── css/style.css       # Style + print
-├── js/data.js          # Thư viện cell, vật tư, mẫu pack (chỉnh tại đây)
-├── js/app.js           # Logic tính BOM & dự toán
+├── index.html          # Giao diện (SPA nhiều tab)
+├── css/style.css       # Style + chế độ in
+├── js/data.js          # Dữ liệu mặc định: cell, vật tư, mẫu pack
+├── js/store.js         # Kho dữ liệu trung tâm (localStorage)
+├── js/ui.js            # Tiện ích UI: modal, toast, format
+├── js/estimator.js     # Dự toán & BOM
+├── js/pricelist.js     # Quản lý bảng giá
+├── js/customers.js     # Quản lý khách hàng
+├── js/quotes.js        # Tạo & in báo giá
+├── js/app.js           # Router + cấu hình + sao lưu
 └── .github/workflows/  # Auto deploy GitHub Pages
 ```
 
