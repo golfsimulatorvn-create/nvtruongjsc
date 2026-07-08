@@ -329,3 +329,31 @@ table.q-items { width: 100%; }
 .adv { margin-top: 6px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
 .adv summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--primary-dark); }
 .adv .grid-3 { margin-top: 10px; }
+
+/* ============ Header báo giá theo mẫu Hoa Huy ============ */
+.q-brandhead {
+  display: flex; align-items: center; gap: 18px;
+  background: #f5871f; padding: 12px 18px; border-radius: 8px 8px 0 0;
+}
+.q-brandhead .q-logo {
+  background: #fff; border-radius: 6px; padding: 6px; max-height: 74px; max-width: 150px;
+  object-fit: contain; margin: 0; flex-shrink: 0;
+}
+.q-brandinfo { flex: 1; text-align: center; color: #1a1a1a; line-height: 1.5; }
+.q-brandinfo .q-co-name { color: #c0161d; font-size: 20px; font-weight: 800; margin-bottom: 3px; letter-spacing: 0.3px; }
+.q-brandinfo div { font-size: 13px; }
+.q-titleband {
+  background: #39b54a; color: #fff; text-align: center;
+  padding: 8px 12px; border-radius: 0 0 8px 8px; margin-bottom: 16px;
+}
+.q-titleband h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+.q-titleband h1 span { font-weight: 600; font-style: italic; opacity: 0.95; font-size: 18px; }
+.q-titleband .q-code { font-size: 13px; margin-top: 2px; }
+.q-prep-name { font-weight: 700; margin-top: 2px; }
+.q-prep-phone { font-size: 13px; color: var(--muted); }
+
+@media print {
+  .q-brandhead { background: #f5871f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .q-titleband { background: #39b54a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .q-brandinfo .q-co-name { color: #c0161d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

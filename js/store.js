@@ -14,6 +14,7 @@ const Store = (function () {
       phone: "0914.585.177",
       email: "golfsimulator.vn@gmail.com",
       taxCode: "0700899375",
+      website: "hoahuy.com",
       bank: "",
       logo: "assets/logo.png", // đường dẫn logo mặc định (có thể tải ảnh khác trong tab Cấu hình)
     },

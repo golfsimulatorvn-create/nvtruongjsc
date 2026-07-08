@@ -24,7 +24,7 @@ const App = (function () {
 
   /* ---- Cấu hình công ty ---- */
   function bindSettings() {
-    const map = { "co-name": "name", "co-tax": "taxCode", "co-addr": "address", "co-phone": "phone", "co-email": "email", "co-bank": "bank" };
+    const map = { "co-name": "name", "co-tax": "taxCode", "co-addr": "address", "co-phone": "phone", "co-email": "email", "co-web": "website", "co-bank": "bank" };
     Object.entries(map).forEach(([id, key]) => {
       $(id).value = S.company[key] || "";
       $(id).oninput = () => { S.company[key] = $(id).value; Store.save(); };

@@ -72,6 +72,7 @@ const Quotes = (function () {
       id: Store.uid("q-"), code: null, customerId: S.customers[0] ? S.customers[0].id : "",
       date: today(), validDays: 15, items: [], discountPct: 0, vatPct: 8,
       note: "Giá trên đã bao gồm bảo hành. Báo giá có hiệu lực trong thời hạn ghi trên.",
+      preparedBy: "", preparedPhone: S.company.phone || "",
       status: "draft", createdAt: Date.now(),
     };
   }
@@ -133,18 +134,18 @@ const Quotes = (function () {
       </tr>`).join("");
 
     $("quote-doc").innerHTML = `
-      <div class="q-head">
-        <div class="q-company">
-          ${co.logo ? `<img class="q-logo" src="${co.logo}" alt="logo"/>` : ""}
+      <div class="q-brandhead">
+        ${co.logo ? `<img class="q-logo" src="${co.logo}" alt="logo"/>` : ""}
+        <div class="q-brandinfo">
           <div class="q-co-name">${esc(co.name)}</div>
-          ${co.address ? `<div>${esc(co.address)}</div>` : ""}
-          <div>${[co.phone && "ĐT: " + esc(co.phone), co.email && "Email: " + esc(co.email)].filter(Boolean).join(" · ")}</div>
-          ${co.taxCode ? `<div>MST: ${esc(co.taxCode)}</div>` : ""}
+          ${co.address ? `<div>ĐỊA CHỈ: ${esc(co.address)}</div>` : ""}
+          <div>${[co.phone && "Tel: " + esc(co.phone), co.taxCode && "MST: " + esc(co.taxCode)].filter(Boolean).join(" · ")}</div>
+          <div>${[co.website && "Website: " + esc(co.website), co.email && esc(co.email)].filter(Boolean).join(" · ")}</div>
         </div>
-        <div class="q-title-box">
-          <h1>BÁO GIÁ</h1>
-          <div class="q-code">${esc(q.code || "(chưa lưu)")}</div>
-        </div>
+      </div>
+      <div class="q-titleband">
+        <h1>BẢNG BÁO GIÁ <span>/ QUOTATION</span></h1>
+        <div class="q-code">Số: ${esc(q.code || "(chưa lưu)")} · Ngày ${dmy(q.date)}</div>
       </div>
 
       <div class="q-meta no-print">
@@ -161,6 +162,8 @@ const Quotes = (function () {
             <option value="rejected" ${q.status==="rejected"?"selected":""}>Từ chối</option>
           </select>
         </label>
+        <label class="field"><span>Người báo giá</span><input data-q="preparedBy" value="${esc(q.preparedBy || "")}" placeholder="Họ tên người lập"/></label>
+        <label class="field"><span>SĐT người báo giá</span><input data-q="preparedPhone" value="${esc(q.preparedPhone || "")}" placeholder="Số điện thoại"/></label>
       </div>
 
       <div class="q-cust">
@@ -204,7 +207,12 @@ const Quotes = (function () {
       ${co.bank ? `<div class="q-bank">Thông tin thanh toán: ${esc(co.bank)}</div>` : ""}
       <div class="q-sign">
         <div><b>KHÁCH HÀNG</b><br><small>(Ký, ghi rõ họ tên)</small></div>
-        <div><b>ĐẠI DIỆN BÁN HÀNG</b><br><small>(Ký, ghi rõ họ tên)</small></div>
+        <div>
+          <b>NGƯỜI BÁO GIÁ</b>
+          ${q.preparedBy ? `<div class="q-prep-name">${esc(q.preparedBy)}</div>` : ""}
+          ${q.preparedPhone ? `<div class="q-prep-phone">ĐT: ${esc(q.preparedPhone)}</div>` : ""}
+          <small>(Ký, ghi rõ họ tên)</small>
+        </div>
       </div>`;
 
     bindEditor();
@@ -219,6 +227,7 @@ const Quotes = (function () {
         if (["customerId", "date", "validDays", "discountPct", "vatPct"].includes(f)) renderEditor();
       };
       if (el.tagName === "SELECT") el.onchange = () => { editing[el.getAttribute("data-q")] = el.value; renderEditor(); };
+      else el.onchange = () => renderEditor(); // cập nhật bản in khi rời ô (người báo giá, ghi chú...)
     });
     // sửa dòng hàng
     $("quote-doc").querySelectorAll("[data-qi]").forEach((el) => {
@@ -288,9 +297,12 @@ const Quotes = (function () {
     const esc = (s) => `"${String(s == null ? "" : s).replace(/"/g, '""')}"`;
     const rows = [];
     rows.push([co.name]);
-    rows.push(["BÁO GIÁ", q.code || "(chưa lưu)"]);
+    if (co.address) rows.push([co.address]);
+    rows.push([[co.phone && "Tel: " + co.phone, co.website && "Website: " + co.website].filter(Boolean).join("  ")]);
+    rows.push(["BÁO GIÁ / QUOTATION", q.code || "(chưa lưu)"]);
     rows.push(["Khách hàng", cust ? cust.name + (cust.company ? " - " + cust.company : "") : ""]);
     rows.push(["Ngày", dmy(q.date), "Hiệu lực (ngày)", q.validDays]);
+    rows.push(["Người báo giá", q.preparedBy || "", "SĐT", q.preparedPhone || ""]);
     rows.push([]);
     rows.push(["#", "Hàng hóa/Dịch vụ", "ĐVT", "Số lượng", "Đơn giá", "Thành tiền"]);
     q.items.forEach((it, i) => rows.push([i + 1, it.name, it.unit, it.qty, it.price, it.qty * it.price]));
