@@ -405,3 +405,19 @@ table.q-items { width: 100%; }
 .pr-thumb { max-width: 70px; max-height: 54px; object-fit: contain; border-radius: 4px; }
 /* Điều khoản báo giá in xuống dòng đúng */
 .q-note-print { white-space: pre-line; }
+
+/* ============================================================
+ * CHỈNH KÍCH THƯỚC CỘT BẢNG BÁO GIÁ (sửa số px/% bên dưới)
+ * Thứ tự cột: 1=STT · 2=Mã SP · 3=Thông số KT · 4=Hình ảnh
+ *             5=SL · 6=Đơn giá · 7=Thành tiền · 8=(nút xóa)
+ * ============================================================ */
+table.q-items { table-layout: fixed; width: 100%; }
+table.q-items th, table.q-items td { overflow: hidden; word-wrap: break-word; }
+table.q-items th:nth-child(1), table.q-items td:nth-child(1) { width: 40px; }    /* STT */
+table.q-items th:nth-child(2), table.q-items td:nth-child(2) { width: 130px; }   /* Mã sản phẩm */
+table.q-items th:nth-child(3), table.q-items td:nth-child(3) { width: auto; }    /* Thông số kỹ thuật (co giãn) */
+table.q-items th:nth-child(4), table.q-items td:nth-child(4) { width: 96px; }    /* Hình ảnh */
+table.q-items th:nth-child(5), table.q-items td:nth-child(5) { width: 60px; }    /* Số lượng */
+table.q-items th:nth-child(6), table.q-items td:nth-child(6) { width: 110px; }   /* Đơn giá */
+table.q-items th:nth-child(7), table.q-items td:nth-child(7) { width: 120px; }   /* Thành tiền */
+table.q-items th:nth-child(8), table.q-items td:nth-child(8) { width: 34px; }    /* Nút xóa */
