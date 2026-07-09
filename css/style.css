@@ -416,7 +416,7 @@ table.q-items th, table.q-items td { overflow: hidden; word-wrap: break-word; }
 table.q-items th:nth-child(1), table.q-items td:nth-child(1) { width: 40px; }    /* STT */
 table.q-items th:nth-child(2), table.q-items td:nth-child(2) { width: 130px; }   /* Mã sản phẩm */
 table.q-items th:nth-child(3), table.q-items td:nth-child(3) { width: auto; }    /* Thông số kỹ thuật (co giãn) */
-table.q-items th:nth-child(4), table.q-items td:nth-child(4) { width: 96px; }    /* Hình ảnh */
+table.q-items th:nth-child(4), table.q-items td:nth-child(4) { width: 150px; }    /* Hình ảnh */
 table.q-items th:nth-child(5), table.q-items td:nth-child(5) { width: 60px; }    /* Số lượng */
 table.q-items th:nth-child(6), table.q-items td:nth-child(6) { width: 110px; }   /* Đơn giá */
 table.q-items th:nth-child(7), table.q-items td:nth-child(7) { width: 120px; }   /* Thành tiền */
