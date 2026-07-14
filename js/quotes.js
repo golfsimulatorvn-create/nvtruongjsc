@@ -157,9 +157,9 @@ const Quotes = (function () {
         <td class="col-idx">${stt}</td>
         <td><input class="cell-in" data-qi="${i}" data-f="code" value="${esc(it.code || "")}" placeholder="Mã SP"/></td>
         <td><textarea class="cell-in q-spec" rows="2" data-qi="${i}" data-f="name" placeholder="Thông số kỹ thuật">${esc(it.name)}</textarea></td>
-        <td class="q-imgcell">${img}</td>
+        <td class="q-imgcell no-print">${img}</td>
         <td class="col-num"><input class="cell-in num" type="number" min="0" step="any" data-qi="${i}" data-f="qty" value="${it.qty}"/></td>
-        <td class="col-num"><input class="cell-in num" type="number" min="0" step="100" data-qi="${i}" data-f="price" value="${it.price}"/></td>
+        <td class="col-num"><input class="cell-in num no-print" type="number" min="0" step="100" data-qi="${i}" data-f="price" value="${it.price}"/><span class="only-print">${fmt(it.price)}</span></td>
         <td class="col-num" data-linetotal="${i}">${fmt((it.qty || 0) * (it.price || 0))}</td>
         <td class="col-act no-print"><button class="btn-del" data-qdel="${i}">✕</button></td>
       </tr>`;
@@ -212,7 +212,7 @@ const Quotes = (function () {
       <div class="table-scroll">
         <table class="bom q-items">
           <thead><tr>
-            <th class="col-idx">STT</th><th>Mã sản phẩm</th><th>Thông số kỹ thuật</th><th class="q-imgcol">Hình ảnh</th>
+            <th class="col-idx">STT</th><th>Mã sản phẩm</th><th>Thông số kỹ thuật</th><th class="q-imgcol no-print">Hình ảnh</th>
             <th class="col-num">SL</th><th class="col-num">Đơn giá</th><th class="col-num">Thành tiền</th>
             <th class="col-act no-print"></th>
           </tr></thead>

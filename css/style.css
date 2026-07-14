@@ -152,6 +152,7 @@ table.bom tbody tr:hover { background: #f0fdfa; }
   body { background: #fff; }
   .no-print { display: none !important; }
   .only-print { display: block; }
+  span.only-print { display: inline; }
   .layout { display: block; padding: 0; }
   .panel { border: none; box-shadow: none; padding: 0; }
   .print-header { margin-bottom: 14px; border-bottom: 2px solid var(--primary-dark); padding-bottom: 10px; }
@@ -421,3 +422,8 @@ table.q-items th:nth-child(5), table.q-items td:nth-child(5) { width: 60px; }   
 table.q-items th:nth-child(6), table.q-items td:nth-child(6) { width: 110px; }   /* Đơn giá */
 table.q-items th:nth-child(7), table.q-items td:nth-child(7) { width: 120px; }   /* Thành tiền */
 table.q-items th:nth-child(8), table.q-items td:nth-child(8) { width: 34px; }    /* Nút xóa */
+
+@media print {
+  table.q-items th:nth-child(4), table.q-items td:nth-child(4) { width: 0 !important; display: none !important; } /* Ẩn cột ảnh khi in */
+  table.q-items th:nth-child(3), table.q-items td:nth-child(3) { width: auto !important; } /* Mở rộng thông số */
+}
