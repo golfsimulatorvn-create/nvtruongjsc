@@ -101,13 +101,15 @@ const Products = (function () {
       <div class="grid-2">
         <label class="field"><span>Đại lý cấp 2 (đ)</span><input data-name="dl2" type="number" step="1000" value="${pr.dl2 || 0}"/></label>
         <label class="field"><span>Giá lẻ (đ)</span><input data-name="le" type="number" step="1000" value="${pr.le || 0}"/></label>
-      </div>`;
+      </div>
+      <p class="hint" style="margin-top: 8px;">💡 Nhập giá đã bao gồm VAT 8% → Hệ thống tự tách VAT và lưu giá gốc</p>`;
   }
 
   function clean(v) {
+    const removeVAT = (price) => Math.round((+price || 0) / 1.08);
     return { code: (v.code || "").trim(), group: (v.group || "Khác").trim() || "Khác",
       name: (v.name || "").trim(), unit: (v.unit || "bộ").trim(),
-      prices: { nsx: +v.nsx || 0, dl1: +v.dl1 || 0, dl2: +v.dl2 || 0, le: +v.le || 0 } };
+      prices: { nsx: removeVAT(v.nsx), dl1: removeVAT(v.dl1), dl2: removeVAT(v.dl2), le: removeVAT(v.le) } };
   }
 
   function add() {
@@ -176,14 +178,15 @@ const Products = (function () {
           const r = {}; Object.keys(raw).forEach((k) => (r[noAccent(k)] = raw[k]));
           const code = String(pick(r, ["masanpham", "masp", "ma", "code"])).trim();
           if (!code) return;
+          const removeVAT = (price) => Math.round(price / 1.08);
           const rec = {
             code, group: String(pick(r, ["nhom", "group", "loai"])).trim(),
             name: String(pick(r, ["thongsokythuat", "thongso", "ten", "name"])).trim(),
             unit: String(pick(r, ["dvt", "donvitinh", "unit"])).trim(),
-            nsx: toNum(pick(r, ["giansx", "nsx", "giaban", "gia", "price"])),
-            dl1: toNum(pick(r, ["dailycap1", "daily1", "dl1"])),
-            dl2: toNum(pick(r, ["dailycap2", "daily2", "dl2"])),
-            le: toNum(pick(r, ["giale", "le", "banle"])),
+            nsx: removeVAT(toNum(pick(r, ["giansx", "nsx", "giaban", "gia", "price"]))),
+            dl1: removeVAT(toNum(pick(r, ["dailycap1", "daily1", "dl1"]))),
+            dl2: removeVAT(toNum(pick(r, ["dailycap2", "daily2", "dl2"]))),
+            le: removeVAT(toNum(pick(r, ["giale", "le", "banle"]))),
           };
           const ex = S.products.find((p) => p.code.toLowerCase() === code.toLowerCase());
           if (ex) upd.push({ ex, rec }); else add.push(rec);
@@ -193,7 +196,7 @@ const Products = (function () {
       if (!total) return toast("Không tìm thấy dữ liệu (cần cột 'Mã sản phẩm')", "err");
       modal({
         title: "Xác nhận nhập kho sản phẩm", okText: "Áp dụng",
-        bodyHtml: `<div class="import-summary"><div>Cập nhật: <b>${upd.length}</b> sản phẩm</div><div>Thêm mới: <b>${add.length}</b> sản phẩm</div></div>`,
+        bodyHtml: `<div class="import-summary"><div>Cập nhật: <b>${upd.length}</b> sản phẩm</div><div>Thêm mới: <b>${add.length}</b> sản phẩm</div></div><p class="hint" style="margin-top:12px;">💡 Giá trong file được coi là đã bao gồm VAT 8% → Sẽ tự tách VAT và lưu giá gốc</p>`,
         onSubmit: () => {
           upd.forEach(({ ex, rec }) => {
             if (rec.name) ex.name = rec.name; if (rec.group) ex.group = rec.group; if (rec.unit) ex.unit = rec.unit;
