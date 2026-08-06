@@ -1,0 +1,305 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dự toán · Bảng giá · Báo giá Pin</title>
+<meta name="description" content="Quản lý bảng giá vật tư, khách hàng và tạo báo giá cho các loại Pin (LiFePO4, Li-ion), kèm dự toán & BOM chuẩn." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔋</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+
+<header class="app-header no-print">
+  <div class="wrap header-inner">
+    <div class="brand">
+      <span class="brand-logo">🔋</span>
+      <div>
+        <h1>Dự toán &amp; Báo giá Pin</h1>
+        <p class="tagline">Bảng giá vật tư · Khách hàng · Báo giá · BOM chuẩn</p>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab is-active" data-view="estimator">Dự toán</button>
+      <button class="tab" data-view="pricelist">Bảng giá</button>
+      <button class="tab" data-view="products">Sản phẩm</button>
+      <button class="tab" data-view="customers">Khách hàng</button>
+      <button class="tab" data-view="quotes">Báo giá</button>
+      <button class="tab" data-view="settings">Cấu hình</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ================= DỰ TOÁN ================= -->
+  <section class="view is-active" id="view-estimator">
+    <div class="layout">
+      <div class="panel no-print">
+        <h2 class="panel-title">1. Cấu hình pack Pin</h2>
+        <label class="field"><span>Tên BOM</span><input id="bom-name" placeholder="VD: Pin xe nâng 24204 (16S 102Ah)" /></label>
+        <div class="grid-2">
+          <label class="field"><span>Mã sản phẩm</span><input id="product-code" placeholder="VD: HHXN24204V1" /></label>
+          <label class="field"><span>Mẫu pack chuẩn <button type="button" id="tpl-manage" class="mini-link">⚙ Quản lý mẫu</button></span><select id="template"></select></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Loại cell</span><select id="cell"></select></label>
+          <label class="field"><span>Đơn giá cell (đ/cell)</span><input id="cell-price" type="number" min="0" step="100" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Loại BMS</span><select id="bms"></select></label>
+          <label class="field"><span>Loại Vỏ (Case)</span><select id="case"></select></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Số cell nối tiếp (S)</span><input id="series" type="number" min="1" step="1" /></label>
+          <label class="field"><span>Số cell song song (P)</span><input id="parallel" type="number" min="1" step="1" /></label>
+        </div>
+        <div class="spec-card" id="spec-card"></div>
+        <p class="hint">Danh sách BMS/Vỏ lấy từ tab <b>Bảng giá</b> (theo phân loại mã). Thêm loại mới ở đó sẽ tự hiện tại đây.</p>
+
+        <h2 class="panel-title">2. Hệ số chi phí <button type="button" id="btn-cell-rates" class="mini-link">⚙ Định mức theo loại cell</button></h2>
+        <div class="grid-2">
+          <label class="field"><span>Hao hụt vật tư (%)</span><input id="waste" type="number" min="0" step="0.5" /></label>
+          <label class="field"><span>Nhân công (đ/cell)</span><input id="labor-cell" type="number" min="0" step="500" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Quản lý (đ/cell)</span><input id="mgmt-cell" type="number" min="0" step="500" /></label>
+          <label class="field"><span>Nhân công cố định (đ/pack)</span><input id="labor-fixed" type="number" min="0" step="1000" /></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span>Lợi nhuận (%)</span><input id="margin" type="number" min="0" step="1" /></label>
+          <label class="field"><span>Thuế VAT (%)</span><input id="vat" type="number" min="0" step="1" /></label>
+        </div>
+        <label class="field"><span>Số lượng pack</span><input id="qty" type="number" min="1" step="1" /></label>
+        <p class="hint">Nhân công &amp; quản lý tính theo <b>số cell × loại cell</b> (bấm “Định mức theo loại cell” để đặt riêng từng loại). Giá vật tư lấy từ tab <b>Bảng giá</b>.</p>
+      </div>
+
+      <div class="panel panel-wide">
+        <div class="panel-head">
+          <h2 class="panel-title" id="bom-title">3. Định mức vật tư (BOM)</h2>
+          <div class="head-tools no-print">
+            <label class="btn btn-sm btn-ghost" for="bom-import-file">⬆️ Nhập Excel</label>
+            <input id="bom-import-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+            <button id="btn-regen-bom" class="btn btn-sm btn-ghost" type="button">🔄 Dựng lại</button>
+            <button id="btn-add-from-pl" class="btn btn-sm btn-ghost" type="button">+ Từ bảng giá</button>
+            <button id="btn-add" class="btn btn-sm" type="button">+ Thêm dòng</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="bom" id="bom-table">
+            <thead><tr>
+              <th class="col-idx">#</th><th>Mã mặt hàng</th><th>Tên mặt hàng</th><th class="col-unit">ĐVT</th>
+              <th class="col-num">SL</th><th class="col-num">Đơn giá</th><th class="col-num">Thành tiền</th>
+              <th class="col-act no-print"></th>
+            </tr></thead>
+            <tbody id="bom-body"></tbody>
+            <tfoot><tr class="row-total">
+              <td colspan="6">Tổng chi phí vật tư</td><td class="col-num" id="sum-material">0</td><td class="no-print"></td>
+            </tr></tfoot>
+          </table>
+        </div>
+
+        <h2 class="panel-title">4. Bảng dự toán giá thành</h2>
+        <div class="summary" id="summary"></div>
+        <div class="panel-actions no-print">
+          <button id="btn-save-bom" class="btn" type="button">💾 Lưu BOM</button>
+          <button id="btn-load-bom" class="btn btn-ghost" type="button">📂 BOM đã lưu</button>
+          <button id="btn-export-bom" class="btn btn-ghost" type="button">⬇️ Xuất Excel</button>
+          <button id="btn-to-quote" class="btn" type="button">📄 Tạo báo giá</button>
+          <button id="btn-print-est" class="btn btn-ghost" type="button">🖨️ In</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BẢNG GIÁ ================= -->
+  <section class="view" id="view-pricelist">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Nhập / Xuất bảng giá Excel</h2>
+        <div class="head-tools">
+          <label class="btn btn-sm" for="pl-import-file">⬆️ Nhập từ Excel</label>
+          <input id="pl-import-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn btn-sm btn-ghost" id="pl-export-excel" type="button">⬇️ Xuất Excel (mẫu)</button>
+        </div>
+      </div>
+      <p class="hint">Tải <b>“Xuất Excel (mẫu)”</b> để lấy file đúng định dạng cột. Chỉnh trong Excel rồi <b>“Nhập từ Excel”</b> — khớp theo <b>Mã mặt hàng</b>: có sẵn thì cập nhật, chưa có thì thêm mới. Phân loại tự nhận theo tiền tố mã (CELL/CE, BMS, CASE, PCB, còn lại = phụ). Hỗ trợ .xlsx / .xls / .csv.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Bảng giá đầu vào</h2>
+        <div class="head-tools">
+          <input id="pl-search" class="search" type="search" placeholder="🔍 Tìm mã / tên / hãng..." />
+          <button class="btn btn-sm" id="pl-add-item" type="button">+ Thêm mặt hàng</button>
+        </div>
+      </div>
+      <div class="cat-filter" id="pl-cat-filter"></div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-items"><thead><tr>
+          <th>Phân loại</th><th>Mã mặt hàng</th><th>Tên mặt hàng [Thông số]</th><th>Mã NSX</th><th>Hãng SX</th>
+          <th class="col-num">Đơn giá (đ)</th><th>TG đặt hàng</th><th class="col-num">Tồn tối thiểu</th><th>Cài đặt (BOM)</th><th class="col-act"></th>
+        </tr></thead><tbody id="items-body"></tbody></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Lịch sử điều chỉnh giá</h2>
+        <button class="btn btn-sm btn-ghost" id="pl-clear-history" type="button">Xóa lịch sử</button>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-history"><thead><tr>
+          <th>Thời gian</th><th>Hạng mục</th><th class="col-num">Giá cũ</th><th class="col-num">Giá mới</th><th class="col-num">Thay đổi</th>
+        </tr></thead><tbody id="history-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SẢN PHẨM (KHO / BẢNG GIÁ BÁN) ================= -->
+  <section class="view" id="view-products">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Nhập / Xuất Excel kho sản phẩm</h2>
+        <div class="head-tools">
+          <label class="btn btn-sm" for="pr-import-file">⬆️ Nhập từ Excel</label>
+          <input id="pr-import-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn btn-sm btn-ghost" id="pr-export-excel" type="button">⬇️ Xuất Excel</button>
+        </div>
+      </div>
+      <p class="hint">Kho sản phẩm = <b>bảng giá bán</b> của công ty. Cột: <b>Mã sản phẩm · Nhóm · Thông số kỹ thuật · ĐVT · Giá bán</b>. Nhập/xuất khớp theo <b>Mã sản phẩm</b>. Khi lập báo giá, bấm <b>“+ Từ kho sản phẩm”</b> để lấy trực tiếp.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Kho sản phẩm (bảng giá bán)</h2>
+        <div class="head-tools">
+          <input id="pr-search" class="search" type="search" placeholder="🔍 Tìm mã / thông số / nhóm..." />
+          <button class="btn btn-sm" id="pr-add" type="button">+ Thêm sản phẩm</button>
+        </div>
+      </div>
+      <div class="cat-filter" id="pr-group-filter"></div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-products"><thead><tr>
+          <th>Nhóm</th><th>Ảnh</th><th>Mã sản phẩm</th><th>Thông số kỹ thuật</th><th class="col-unit">ĐVT</th>
+          <th class="col-num">Giá NSX</th><th class="col-num">Đại lý 1</th><th class="col-num">Đại lý 2</th><th class="col-num">Giá lẻ</th><th class="col-act"></th>
+        </tr></thead><tbody id="products-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= KHÁCH HÀNG ================= -->
+  <section class="view" id="view-customers">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Danh sách khách hàng</h2>
+        <div class="head-tools">
+          <input id="cust-search" class="search" type="search" placeholder="🔍 Tìm tên / công ty / SĐT..." />
+          <button class="btn btn-sm" id="cust-add" type="button">+ Thêm khách hàng</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-cust"><thead><tr>
+          <th>Khách hàng</th><th>Công ty</th><th>Điện thoại</th><th>Email</th><th class="col-num">Số báo giá</th><th class="col-act"></th>
+        </tr></thead><tbody id="cust-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BÁO GIÁ ================= -->
+  <section class="view" id="view-quotes">
+    <!-- Danh sách -->
+    <div class="panel" id="quotes-list-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Danh sách báo giá</h2>
+        <div class="head-tools">
+          <input id="quote-search" class="search" type="search" placeholder="🔍 Tìm số / khách hàng..." />
+          <button class="btn btn-sm" id="quote-new" type="button">+ Báo giá mới</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="grid-table" id="tbl-quotes"><thead><tr>
+          <th>Số báo giá</th><th>Ngày</th><th>Khách hàng</th><th class="col-num">Giá trị (đã VAT)</th><th>Trạng thái</th><th class="col-act"></th>
+        </tr></thead><tbody id="quotes-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Trình soạn báo giá -->
+    <div class="panel" id="quote-editor" hidden>
+      <div class="panel-head no-print">
+        <h2 class="panel-title" id="qe-title">Soạn báo giá</h2>
+        <div class="head-tools">
+          <button class="btn btn-ghost btn-sm" id="qe-back" type="button">← Danh sách</button>
+          <button class="btn btn-ghost btn-sm" id="qe-csv" type="button">⬇️ Excel/CSV</button>
+          <button class="btn btn-ghost btn-sm" id="qe-print" type="button">🖨️ In / PDF</button>
+          <button class="btn btn-sm" id="qe-save" type="button">💾 Lưu báo giá</button>
+        </div>
+      </div>
+
+      <!-- Bản in báo giá -->
+      <div id="quote-doc" class="quote-doc"></div>
+    </div>
+  </section>
+
+  <!-- ================= CẤU HÌNH ================= -->
+  <section class="view" id="view-settings">
+    <div class="panel">
+      <h2 class="panel-title">Thông tin công ty (hiển thị trên báo giá)</h2>
+      <div class="grid-2">
+        <label class="field"><span>Tên công ty</span><input id="co-name" /></label>
+        <label class="field"><span>Mã số thuế</span><input id="co-tax" /></label>
+      </div>
+      <label class="field"><span>Địa chỉ</span><input id="co-addr" /></label>
+      <div class="grid-2">
+        <label class="field"><span>Điện thoại</span><input id="co-phone" /></label>
+        <label class="field"><span>Email</span><input id="co-email" /></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Website</span><input id="co-web" placeholder="VD: hoahuy.com" /></label>
+        <label class="field"><span>Thông tin chuyển khoản / ngân hàng</span><input id="co-bank" /></label>
+      </div>
+      <div class="logo-row">
+        <div class="logo-preview" id="co-logo-preview">Chưa có logo</div>
+        <div class="logo-tools">
+          <label class="btn btn-sm" for="co-logo-file">🖼️ Chọn logo</label>
+          <input id="co-logo-file" type="file" accept="image/*" hidden />
+          <button class="btn btn-sm btn-ghost" id="co-logo-clear" type="button">Xóa logo</button>
+          <p class="hint">PNG/JPG, hiển thị trên đầu báo giá.</p>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="panel-title">Sao lưu &amp; khôi phục dữ liệu</h2>
+      <p class="hint">Toàn bộ dữ liệu lưu trong trình duyệt này. Nên xuất file định kỳ để sao lưu.</p>
+      <div class="panel-actions">
+        <button class="btn" id="data-export" type="button">⬇️ Xuất dữ liệu (JSON)</button>
+        <label class="btn btn-ghost" for="data-import-file">⬆️ Nhập dữ liệu</label>
+        <input id="data-import-file" type="file" accept="application/json" hidden />
+        <button class="btn btn-ghost" id="data-reset" type="button">🗑️ Xóa toàn bộ &amp; đặt lại</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="app-footer no-print">
+  <div class="wrap"><p>Công cụ dự toán &amp; báo giá Pin · Dữ liệu lưu cục bộ trong trình duyệt · Đối chiếu báo giá NCC thực tế trước khi chốt.</p></div>
+</footer>
+
+<!-- Modal chung -->
+<div class="modal-overlay" id="modal" hidden>
+  <div class="modal">
+    <div class="modal-head"><h3 id="modal-title">Tiêu đề</h3><button class="modal-x" id="modal-close">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modal-cancel" type="button">Hủy</button>
+      <button class="btn" id="modal-ok" type="button">Lưu</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/vendor/xlsx.full.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/products-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/estimator.js"></script>
+<script src="js/pricelist.js"></script>
+<script src="js/products.js"></script>
+<script src="js/customers.js"></script>
+<script src="js/quotes.js"></script>
+<script src="js/app.js"></script>
